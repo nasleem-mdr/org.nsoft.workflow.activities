@@ -76,13 +76,19 @@ import org.zkoss.zul.Html;
 import org.zkoss.zul.North;
 import org.zkoss.zul.South;
 import org.zkoss.zul.Vlayout;
+import org.zkoss.zul.Groupbox grpDetails;
+import org.zkoss.zul.Listbox lstLines;
+import java.lang.reflect.Method;
+import org.zkoss.zk.ui.Component;
+import org.zkoss.zul.Listhead;
+import org.zkoss.zul.Listheader;
 
 /**
  * Workflow activity form
  * @author hengsin
  *
  */
-@org.idempiere.ui.zk.annotation.Form(name = "org.compiere.apps.wf.WFActivity")
+@org.idempiere.ui.zk.annotation.Form(name = "org.nsoft.webui.apps.wf.WFActivity")
 public class WWFActivity extends ADForm implements EventListener<Event>
 {
 	/**
@@ -123,7 +129,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Button bRefresh = new Button();
 
 	private ListModelTable model = null;
-	private WListbox listbox = new WListbox();
+	private WListbox listbox = new WListbox();		private org.zkoss.zul.Groupbox grpDetails;
+	private org.zkoss.zul.Listbox lstLines;
+
 
 	private final static String HISTORY_DIV_START_TAG = "<div style='overflow-y:scroll;height: 100px; border: 1px solid #7F9DB9;'>";
 	
@@ -183,140 +191,341 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	 */
 	private void init()
 	{
-		Grid grid = new Grid();
-		grid.setStyle("margin:0; padding:0;");
-        grid.makeNoStrip();
+		// ================================================================
+		// BAGIAN 1: WEST PANEL (Daftar Approval Modern)
+		// ================================================================
+		West westPanel = new West();
+		westPanel.setSize("320px");
+		westPanel.setSplittable(true);
+		westPanel.setCollapsible(true);
+		westPanel.setTitle("Antrean Approval / Approvals");
+		
+		// Listbox dikonfigurasi agar itemnya menumpuk rapi seperti contoh desain Anda
+		listbox.setSclass("wf-approval-listbox");
+		ZKUpdateUtil.setVflex(listbox, "1");
+		ZKUpdateUtil.setHflex(listbox, "1");
+		westPanel.appendChild(listbox);
+		listbox.addEventListener(Events.ON_SELECT, this);
 
-		Columns columns = new Columns();
-		grid.appendChild(columns);
-		Column column = new Column();
-		ZKUpdateUtil.setWidth(column, "30%");
-		columns.appendChild(column);
-		column = new Column();
-		ZKUpdateUtil.setWidth(column, "70%");
-		columns.appendChild(column);
 
-		Rows rows = new Rows();
-		grid.appendChild(rows);
+		// ================================================================
+		// BAGIAN 2: CENTER PANEL - NODE APPROVAL (Grid Atas)
+		// ================================================================
+		// Menggunakan susunan vertikal murni tanpa grid table agar tidak kaku
+		Vlayout nodeApprovalArea = new Vlayout();
+		nodeApprovalArea.setHflex("1");
+		nodeApprovalArea.setSpacing("8px");
+		nodeApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px;");
 
-		Row row = new Row();
-		rows.appendChild(row);
-		Div div = new Div();
-		div.setStyle("text-align: right;");
-		div.appendChild(lNode);
-		row.appendChild(div);
-		row.appendChild(fNode);
+		// Judul Section
+		org.zkoss.zul.Label titleNode = new org.zkoss.zul.Label("Node Approval:");
+		titleNode.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block; margin-bottom: 5px;");
+		nodeApprovalArea.appendChild(titleNode);
+
+		// Node Field Group
+		Vlayout nodeGroup = new Vlayout();
+		nodeGroup.setSpacing("3px");
+		lNode.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
+		nodeGroup.appendChild(lNode);
+		nodeGroup.appendChild(fNode);
 		ZKUpdateUtil.setHflex(fNode, "true");
 		fNode.setReadonly(true);
+		fNode.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px;");
+		nodeApprovalArea.appendChild(nodeGroup);
 
-		row = new Row();
-		rows.appendChild(row);
-		row.setValign("top");
-		div = new Div();
-		div.setStyle("text-align: right;");
-		div.appendChild(lDesctiption);
-		row.appendChild(div);
-		row.appendChild(fDescription);
-		fDescription.setMultiline(true);
+		// Description Field Group
+		Vlayout descGroup = new Vlayout();
+		descGroup.setSpacing("3px");
+		lDesctiption.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
+		descGroup.appendChild(lDesctiption);
+		descGroup.appendChild(fDescription);
 		ZKUpdateUtil.setHflex(fDescription, "true");
+		fDescription.setMultiline(true);
 		fDescription.setReadonly(true);
+		fDescription.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; min-height: 40px;");
+		nodeApprovalArea.appendChild(descGroup);
 
-		row = new Row();
-		rows.appendChild(row);
-		div = new Div();
-		div.setStyle("text-align: right;");
-		div.appendChild(lHelp);
-		row.appendChild(div);
-		row.appendChild(fHelp);
-		fHelp.setMultiline(true);
-		fHelp.setRows(3);
+		// Help Field Group (Opsional, ditaruh di bawah Description)
+		Vlayout helpGroup = new Vlayout();
+		helpGroup.setSpacing("3px");
+		lHelp.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
+		helpGroup.appendChild(lHelp);
+		helpGroup.appendChild(fHelp);
 		ZKUpdateUtil.setHflex(fHelp, "true");
+		fHelp.setMultiline(true);
+		fHelp.setRows(2);
 		fHelp.setReadonly(true);
+		fHelp.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; font-style: italic; color: #718096;");
+		nodeApprovalArea.appendChild(helpGroup);
 
-		row = new Row();
-		rows.appendChild(row);
-		div = new Div();
-		div.setStyle("text-align: right;");
-		div.appendChild(lHistory);
-		row.appendChild(div);
-		row.appendChild(fHistory);
+
+		// ================================================================
+		// BAGIAN 3: CENTER PANEL - TAB LAYOUT (Detail Transaksi vs History)
+		// ================================================================
+		org.zkoss.zul.Tabbox tabboxDetail = new org.zkoss.zul.Tabbox();
+		tabboxDetail.setHflex("1");
+
+		org.zkoss.zul.Tabs tabs = new org.zkoss.zul.Tabs();
+		tabboxDetail.appendChild(tabs);
+		org.zkoss.zul.Tab tabLines = new org.zkoss.zul.Tab("Detail Transaksi");
+		org.zkoss.zul.Tab tabHistory = new org.zkoss.zul.Tab("History");
+		tabs.appendChild(tabLines);
+		tabs.appendChild(tabHistory);
+
+		org.zkoss.zul.Tabpanels tabpanels = new org.zkoss.zul.Tabpanels();
+		tabboxDetail.appendChild(tabpanels);
+
+		// --- Tabpanel 1: Detail Transaksi (Header, BP, Lines) ---
+		org.zkoss.zul.Tabpanel panelLines = new org.zkoss.zul.Tabpanel();
+		tabpanels.appendChild(panelLines);
+
+		grpTxDetails = new org.zkoss.zul.Groupbox();
+		grpTxDetails.setCaption("Header & Lines");
+		grpTxDetails.setOpen(true);
+		grpTxDetails.setHflex("1");
+		grpTxDetails.setVisible(true); // Diaktifkan true agar langsung terlihat saat tes layout
+		grpTxDetails.setStyle("border: none; padding: 0;");
+
+		// Struktur Listbox Lines bawaan iDempiere Anda dimasukkan ke dalam groupbox ini
+		lstTxLines = new org.zkoss.zul.Listbox();
+		lstTxLines.setHflex("1");
+		lstTxLines.setSpan(true);
+		lstTxLines.setSclass("mobile-scrollable-list");
+		grpTxDetails.appendChild(lstTxLines);
+		panelLines.appendChild(grpTxDetails);
+
+		// --- Tabpanel 2: History ---
+		org.zkoss.zul.Tabpanel panelHistory = new org.zkoss.zul.Tabpanel();
+		tabpanels.appendChild(panelHistory);
+
+		Vlayout historyLayout = new Vlayout();
+		historyLayout.setHflex("1");
+		historyLayout.setSpacing("5px");
+		lHistory.setStyle("font-weight: bold; color: #2d3748;");
+		historyLayout.appendChild(lHistory);
+		historyLayout.appendChild(fHistory);
 		ZKUpdateUtil.setHflex(fHistory, "true");
+		fHistory.setStyle("border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px;");
+		panelHistory.appendChild(historyLayout);
 
-		row = new Row();
-		rows.appendChild(row);
-		div = new Div();
-		div.setStyle("text-align: right;");
-		div.appendChild(lAnswer);
-		row.appendChild(div);
-		FlexHlayout hbox = new FlexHlayout();
-		hbox.appendChild(fAnswerText);
+
+		// ================================================================
+		// BAGIAN 4: CENTER PANEL - AKSI APPROVAL (Footer Bawah)
+		// ================================================================
+		Vlayout footerApprovalArea = new Vlayout();
+		footerApprovalArea.setHflex("1");
+		footerApprovalArea.setSpacing("12px");
+		footerApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 10px;");
+
+		// Judul Section Footer
+		org.zkoss.zul.Label titleAction = new org.zkoss.zul.Label("Aksi Approval");
+		titleAction.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block;");
+		footerApprovalArea.appendChild(titleAction);
+
+		// txtMessage Group (Label + Field)
+		Vlayout msgGroup = new Vlayout();
+		msgGroup.setSpacing("5px");
+		lTextMsg.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
+		msgGroup.appendChild(lTextMsg);
+		msgGroup.appendChild(fTextMsg);
+		fTextMsg.setMultiline(true);
+		fTextMsg.setRows(3);
+		ZKUpdateUtil.setWidth(fTextMsg, "100%");
+		fTextMsg.setStyle("border: 1px solid #cbd5e0; padding: 8px; border-radius: 4px; font-family: sans-serif;");
+		footerApprovalArea.appendChild(msgGroup);
+
+		// Answer Row (Jika ada pilihan jawaban text/list drop down bawaan iDempiere)
+		org.zkoss.zul.Hlayout answerRow = new org.zkoss.zul.Hlayout();
+		answerRow.setHflex("1");
+		answerRow.setValign("middle");
+		lAnswer.setStyle("font-weight: 600; color: #4a5568; font-size: 12px; margin-right: 5px;");
+		answerRow.appendChild(lAnswer);
+		answerRow.appendChild(fAnswerText);
 		ZKUpdateUtil.setHflex(fAnswerText, "true");
-		hbox.appendChild(fAnswerList);
-		hbox.appendChild(fAnswerButton);
-		hbox.appendChild(bZoom);
-		row.appendChild(hbox);
+		answerRow.appendChild(fAnswerList);
+		answerRow.appendChild(fAnswerButton);
+		answerRow.appendChild(bZoom);
+		footerApprovalArea.appendChild(answerRow);
 		fAnswerButton.addEventListener(Events.ON_CLICK, this);
 		bZoom.addEventListener(Events.ON_CLICK, this);
 
-		row = new Row();
-		rows.appendChild(row);
-		div = new Div();
-		div.setStyle("text-align: right;");
-		div.appendChild(lTextMsg);
-		row.appendChild(div);
-		row.appendChild(fTextMsg);
-		fTextMsg.setMultiline(true);
-		ZKUpdateUtil.setWidth(fTextMsg, "100%");
-
-		row = new Row();
-		rows.appendChild(row);
-		div = new Div();
-		div.setStyle("text-align: right;");
-		div.appendChild(lForward);
-		row.appendChild(div);
-		hbox = new FlexHlayout();
-		hbox.appendChild(fForward.getComponent());
-		hbox.appendChild(bOK);
-		hbox.appendChild(bRefresh);
-		row.appendChild(hbox);
+		// Forward Row (Label Forward + Pilihan User + Tombol OK & Refresh)
+		Vlayout forwardSection = new Vlayout();
+		forwardSection.setSpacing("5px");
+		lForward.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
+		forwardSection.appendChild(lForward);
+		
+		org.zkoss.zul.Hlayout forwardActions = new org.zkoss.zul.Hlayout();
+		forwardActions.setHflex("1");
+		forwardActions.setValign("middle");
+		forwardActions.appendChild(fForward.getComponent());
+		forwardActions.appendChild(bOK);
+		forwardActions.appendChild(bRefresh);
 		bOK.addEventListener(Events.ON_CLICK, this);
 		bRefresh.addEventListener(Events.ON_CLICK, this);
+		forwardSection.appendChild(forwardActions);
+		
+		footerApprovalArea.appendChild(forwardSection);
 
-		Borderlayout layout = new Borderlayout();
-		ZKUpdateUtil.setWidth(layout, "100%");
-		ZKUpdateUtil.setHeight(layout, "100%");
-		layout.setStyle("background-color: transparent; position: relative;");
+		// Tombol Utama Paling Bawah: [ Approve ]  ||  [ Reject ]
+		org.zkoss.zul.Hlayout mainActionButtons = new org.zkoss.zul.Hlayout();
+		mainActionButtons.setHflex("1");
+		mainActionButtons.setSpacing("15px");
+		
+		// Ambil tombol modern bawaan Anda melalui fungsi createModernActionButtons()
+		org.zkoss.zul.Hlayout customButtons = createModernActionButtons();
+		mainActionButtons.appendChild(customButtons);
+		ZKUpdateUtil.setHflex(customButtons, "1");
+		
+		footerApprovalArea.appendChild(mainActionButtons);
 
-		North north = new North();
-		north.appendChild(listbox);
-		north.setSplittable(true);
-		ZKUpdateUtil.setVflex(listbox, "1");
-		ZKUpdateUtil.setHflex(listbox, "1");
-		ZKUpdateUtil.setHeight(north, "49%");
-		layout.appendChild(north);
-		north.setStyle("background-color: transparent");
-		listbox.addEventListener(Events.ON_SELECT, this);
 
-		Center center = new Center();
-		Vlayout vlayout = new Vlayout();
-		vlayout.appendChild(grid);
-		vlayout.setWidth("100%");
-		vlayout.setHeight("99%");
-		center.appendChild(vlayout);
-		layout.appendChild(center);
-		center.setStyle("background-color: transparent; overflow:auto");
-		ZKUpdateUtil.setVflex(grid, "1");
-		ZKUpdateUtil.setHflex(grid, "1");
+		// ================================================================
+		// BAGIAN 5: LAYOUT UTAMA BORDERLAYOUT
+		// ================================================================
+		Borderlayout mainChatLayout = new Borderlayout();
+		ZKUpdateUtil.setWidth(mainChatLayout, "100%");
+		ZKUpdateUtil.setHeight(mainChatLayout, "100%");
+		mainChatLayout.setStyle("background-color: #f7f9fa; position: relative;");
 
+		// Tempelkan Panel Kiri (Daftar Approval)
+		mainChatLayout.appendChild(westPanel);
+
+		// Panel Kanan/Tengah (Area Isi Detail & Aksi)
+		Center centerPanel = new Center();
+		centerPanel.setStyle("background-color: transparent; overflow: auto;");
+
+		Vlayout chatAreaLayout = new Vlayout();
+		chatAreaLayout.setHflex("1");
+		chatAreaLayout.setSpacing("15px");
+		chatAreaLayout.setStyle("padding: 15px;");
+
+		// Urutan Sesuai Gambar Rencana Anda:
+		chatAreaLayout.appendChild(nodeApprovalArea);   // 1. Node Approval Section
+		chatAreaLayout.appendChild(tabboxDetail);       // 2. Tab Detail Transaksi & History
+		chatAreaLayout.appendChild(footerApprovalArea);  // 3. Blok Footer Aksi Approval
+
+		centerPanel.appendChild(chatAreaLayout);
+		mainChatLayout.appendChild(centerPanel);
+
+		// Status Bar di bawah panel utama
 		South south = new South();
 		south.appendChild(statusBar);
-		layout.appendChild(south);
-		south.setStyle("background-color: transparent");
+		south.setStyle("background-color: transparent;");
+		mainChatLayout.appendChild(south);
 
-		this.appendChild(layout);
+		this.appendChild(mainChatLayout);
 		this.setStyle("height: 100%; width: 100%; position: relative;");
 	}
 
+	private void renderTransactionDetails(MWFActivity activity) {
+        // Reset state tampilan
+        lstLines.getChildren().clear();
+        grpDetails.setVisible(false);
+        
+        if (activity == null || activity.getRecord_ID() <= 0) 
+            return;
+        
+        try {
+            int tableId = activity.getAD_Table_ID();
+            MTable table = MTable.get(Env.getCtx(), tableId);
+            //PO headerPO = table.getPO(activity.getRecord_ID(), activity.get_TrxName());
+			PO headerPO = table.getPO(activity.getRecord_ID(), null); 
+            
+            if (headerPO == null) 
+                return;
+            
+            // Menggunakan Java Reflection mencari method getLines() secara global
+            Method getLinesMethod = null;
+            try {
+                getLinesMethod = headerPO.getClass().getMethod("getLines");
+            } catch (NoSuchMethodException e) {
+                // Jika objek tidak punya method getLines (bukan tabel transaksi bertingkat), sembunyikan grid
+                grpDetails.setVisible(false);
+                return;
+            }
+            
+            Object[] lines = (Object[]) getLinesMethod.invoke(headerPO);
+            
+            if (lines != null && lines.length > 0) {
+                grpDetails.setVisible(true); // Tampilkan box panel detail
+                
+                // Set Header Tabel Minimalis agar rapi di Mobile
+                Listhead listHead = new Listhead();
+                listHead.appendChild(createHeader("Produk / Deskripsi", "2"));
+                listHead.appendChild(createHeader("Qty", "1"));
+                listHead.appendChild(createHeader("Total Harga", "1"));
+                lstLines.appendChild(listHead);
+                
+                // Mengambil nilai field line secara dinamis
+                for (Object line : lines) {
+                    Listitem item = new Listitem();
+                    
+                    // 1. Ambil Nama Produk / Deskripsi Item
+                    String itemDetail = "Item / Line";
+                    try {
+                        Method getProductMethod = line.getClass().getMethod("getM_Product");
+                        Object product = getProductMethod.invoke(line);
+                        if (product != null) {
+                            Method getNameMethod = product.getClass().getMethod("getName");
+                            itemDetail = (String) getNameMethod.invoke(product);
+                        }
+                    } catch (Exception e) {
+                        try {
+                            Method getDescriptionMethod = line.getClass().getMethod("getDescription");
+                            Object desc = getDescriptionMethod.invoke(line);
+                            if (desc != null) itemDetail = desc.toString();
+                        } catch (Exception ex) {}
+                    }
+                    
+                    // 2. Ambil nilai Qty (Mencoba kecocokan method getter Qty yang umum)
+                    String qty = "0";
+                    String[] qtyMethodNames = {"getQtyInvoiced", "getQtyOrdered", "getQtyEntered", "getQtyField", "getQtyDelivered"};
+                    for (String methodName : qtyMethodNames) {
+                        try {
+                            Method getQty = line.getClass().getMethod(methodName);
+                            Object qtyObj = getQty.invoke(line);
+                            if (qtyObj != null) {
+                                qty = qtyObj.toString();
+                                break;
+                            }
+                        } catch (Exception e) {}
+                    }
+                    
+                    // 3. Ambil nilai Total Harga / Line Net Amount
+                    String lineNetAmt = "0";
+                    try {
+                        Method getLineNetAmt = line.getClass().getMethod("getLineNetAmt");
+                        Object amtObj = getLineNetAmt.invoke(line);
+                        if (amtObj != null) lineNetAmt = amtObj.toString();
+                    } catch (Exception e) {
+                        try {
+                            // Alternatif jika tidak ada getLineNetAmt (misal di beberapa dokumen internal)
+                            Method getPriceActual = line.getClass().getMethod("getPriceActual");
+                            Object priceObj = getPriceActual.invoke(line);
+                            if (priceObj != null) lineNetAmt = priceObj.toString();
+                        } catch (Exception ex) {}
+                    }
+                    
+                    // Masukkan komponen teks ke dalam baris ZK Listbox
+                    item.appendChild(new Listcell(itemDetail));
+                    item.appendChild(new Listcell(qty));
+                    item.appendChild(new Listcell(lineNetAmt));
+                    lstLines.appendChild(item);
+                }
+            }
+        } catch (Exception e) {
+            log.log(Level.SEVERE, "Gagal memproses refleksi detail transaksi di form approval", e);
+        }
+    }
+
+	// Helper membuat header dengan rasio lebar persentase fleksibel (hflex)
+    private Listheader createHeader(String label, String ratio) {
+        Listheader header = new Listheader(label);
+        header.setHflex(ratio); 
+        return header;
+    }
+	
 	@Override
 	public void onEvent(Event event) throws Exception
 	{
