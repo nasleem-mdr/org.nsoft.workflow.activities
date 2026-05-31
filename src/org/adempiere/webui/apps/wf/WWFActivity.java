@@ -145,10 +145,45 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private WListbox listbox = new WListbox();		
 	private Groupbox grpTxDetails = new Groupbox();
 	private Listbox lstTxLines = new Listbox();
+	private	Label titleWestpanel = new Label(Msg.getMsg(Env.getCtx(),"List Approval"));
     private Label titleNode = new Label(Msg.getMsg(Env.getCtx(), "Approval Node"));
-	private	Label titleAction = new Label(Msg.getMsg(Env.getCtx(),"Aksi Approval"));
+	private	Label titleTablines = new Label(Msg.getMsg(Env.getCtx(),"Approval Detail"));
+	private	Label titleHeaderlines = new Label(Msg.getMsg(Env.getCtx(),"Header & Lines"));
+	private	Label titleAction = new Label(Msg.getMsg(Env.getCtx(),"Approval Action"));
+	private	Label titleApprove = new Label(Msg.getMsg(Env.getCtx(),"Approve"));
+	private	Label titleReject = new Label(Msg.getMsg(Env.getCtx(),"Reject"));
 	private final static String HISTORY_DIV_START_TAG = "<div style='overflow-y:scroll;height: 100px; border: 1px solid #7F9DB9;'>";
+	private Label lHdrDocNo      = new Label();
+	private Label lHdrDateDoc    = new Label();
+	private Label lHdrBPName     = new Label();
+	private Label lHdrGrandTotal = new Label();
 	
+	private FlexHlayout createModernActionButtons() {
+		FlexHlayout buttonLayout = new FlexHlayout();
+		buttonLayout.setHflex("1");
+		buttonLayout.setSpacing("15px");
+		buttonLayout.setStyle("margin-top: 20px; padding: 10px 0; justify-content: flex-end;");
+
+		// Tombol Approve (Hijau)
+		btnApprove = new Button(titleApprove);
+		btnApprove.setHeight("45px");
+		btnApprove.setHflex("1");
+		btnApprove.setStyle("background-color: #2ecc71; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
+		btnApprove.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(true));
+
+		// Tombol Reject (Merah)
+		btnReject = new org.zkoss.zul.Button(titleReject);
+		btnReject.setHeight("45px");
+		btnReject.setHflex("1");
+		btnReject.setStyle("background-color: #e74c3c; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
+		btnReject.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(false));
+
+		buttonLayout.appendChild(btnReject);
+		buttonLayout.appendChild(btnApprove);
+		
+		return buttonLayout;
+	}
+
 	/**
 	 * default constructor
 	 */
@@ -205,14 +240,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	 */
 	private void init()
 	{
-		// ================================================================
 		// Part 1: West Panel (Approval List)
-		// ================================================================
 		West westPanel = new West();
 		westPanel.setSize("320px");
 		westPanel.setSplittable(true);
 		westPanel.setCollapsible(true);
-		westPanel.setTitle("List Approvals");
+		westPanel.setTitle(titleWestpanel);
 		
 		// The listbox is configured so that its items stack neatly.
 		listbox.setSclass("wf-approval-listbox");
@@ -221,21 +254,17 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		westPanel.appendChild(listbox);
 		listbox.addEventListener(Events.ON_SELECT, this);
 
-
-		// ================================================================
 		// Part 2: Center Panel - Node Aproval
-		// ================================================================
-		// Change to vertikal: label over field
 		Vlayout nodeApprovalArea = new Vlayout();
 		nodeApprovalArea.setHflex("1");
 		nodeApprovalArea.setSpacing("8px");
 		nodeApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px;");
 
-		//Title Section
+		//Part 2.1: Title Section
 		titleNode.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block; margin-bottom: 5px;");
 		nodeApprovalArea.appendChild(titleNode);
 
-		// Node Field Group
+		//Part 2.2: Node Field Group
 		Vlayout nodeGroup = new Vlayout();
 		nodeGroup.setSpacing("3px");
 		lNode.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -246,7 +275,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fNode.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px;");
 		nodeApprovalArea.appendChild(nodeGroup);
 
-		// Description Field Group
+		//Part 2.3: Description Field
 		Vlayout descGroup = new Vlayout();
 		descGroup.setSpacing("3px");
 		lDesctiption.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -258,7 +287,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fDescription.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; min-height: 40px;");
 		nodeApprovalArea.appendChild(descGroup);
 
-		// Help Field Group (Opsional, ditaruh di bawah Description)
+		//Part 2.4: Help Field 
 		Vlayout helpGroup = new Vlayout();
 		helpGroup.setSpacing("3px");
 		lHelp.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -271,35 +300,29 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fHelp.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; font-style: italic; color: #718096;");
 		nodeApprovalArea.appendChild(helpGroup);
 
-
-		// ================================================================
 		// Part 3: Center Panel - Tab Layout(Detail Transaction and History)
-		// ================================================================
 		Tabbox tabboxDetail = new Tabbox();
 		tabboxDetail.setHflex("1");
-
 		Tabs tabs = new Tabs();
 		tabboxDetail.appendChild(tabs);
-		Tab tabLines = new Tab("Detail Transaksi");
+		Tab tabLines = new Tab(titleTablines);
 		Tab tabHistory = new Tab(lHistory);
 		tabs.appendChild(tabLines);
 		tabs.appendChild(tabHistory);
-
 		Tabpanels tabpanels = new Tabpanels();
 		tabboxDetail.appendChild(tabpanels);
 
-		// --- Tabpanel 1: Detail Transaction (Header, BP, Lines) ---
+		//Part 3.1: Tabpanel 1 - Detail Transaction (Header, BP, Lines)
 		Tabpanel panelLines = new Tabpanel();
 		tabpanels.appendChild(panelLines);
 
 		grpTxDetails = new Groupbox();
-		grpTxDetails.setCaption("Header & Lines");
+		grpTxDetails.setCaption(titleHeaderlines);
 		grpTxDetails.setOpen(true);
 		grpTxDetails.setHflex("1");
-		grpTxDetails.setVisible(true); // Diaktifkan true agar langsung terlihat saat tes layout
+		grpTxDetails.setVisible(true); 
 		grpTxDetails.setStyle("border: none; padding: 0;");
 
-		// Struktur Listbox Lines bawaan iDempiere Anda dimasukkan ke dalam groupbox ini
 		lstTxLines = new Listbox();
 		lstTxLines.setHflex("1");
 		lstTxLines.setSpan(true);
@@ -307,7 +330,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		grpTxDetails.appendChild(lstTxLines);
 		panelLines.appendChild(grpTxDetails);
 
-		// --- Tabpanel 2: History ---
+		//Part 3.2: Tabpanel 2 - History
 		Tabpanel panelHistory = new Tabpanel();
 		tabpanels.appendChild(panelHistory);
 
@@ -321,20 +344,17 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fHistory.setStyle("border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px;");
 		panelHistory.appendChild(historyLayout);
 
-
-		// ================================================================
-		// Part 4: Center Panel - Approval Action(Footer)
-		// ================================================================
+		//Part 4: Center Panel - Approval Action(Footer)
 		Vlayout footerApprovalArea = new Vlayout();
 		footerApprovalArea.setHflex("1");
 		footerApprovalArea.setSpacing("12px");
 		footerApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 10px;");
 
-		// Footer Title Section
+		//Part 4.1: Footer Title Section
 		titleAction.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block;");
 		footerApprovalArea.appendChild(titleAction);
 
-		// txtMessage Group (Label + Field)
+		//Part 4.2: txtMessage Group
 		Vlayout msgGroup = new Vlayout();
 		msgGroup.setSpacing("5px");
 		lTextMsg.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -346,7 +366,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fTextMsg.setStyle("border: 1px solid #cbd5e0; padding: 8px; border-radius: 4px; font-family: sans-serif;");
 		footerApprovalArea.appendChild(msgGroup);
 
-		// Answer Row (Jika ada pilihan jawaban text/list drop down bawaan iDempiere)
+		//Part 4.3: Answer Row
 		FlexHlayout answerRow = new FlexHlayout();
 		answerRow.setHflex("1");
 		answerRow.setValign("middle");
@@ -361,7 +381,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fAnswerButton.addEventListener(Events.ON_CLICK, this);
 		bZoom.addEventListener(Events.ON_CLICK, this);
 
-		// Forward Row (Label Forward + Pilihan User + Tombol OK & Refresh)
+		//Part 4.4: Forward Row
 		Vlayout forwardSection = new Vlayout();
 		forwardSection.setSpacing("5px");
 		lForward.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -379,31 +399,28 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		
 		footerApprovalArea.appendChild(forwardSection);
 
-		// Tombol Utama Paling Bawah: [ Approve ]  ||  [ Reject ]
+		//Part 4.5: Approve and reject button
 		FlexHlayout mainActionButtons = new FlexHlayout();
 		mainActionButtons.setHflex("1");
 		mainActionButtons.setSpacing("15px");
 		
-		// Ambil tombol modern bawaan Anda melalui fungsi createModernActionButtons()
+		//Use function createModernActionButtons()
 		FlexHlayout customButtons = createModernActionButtons();
 		mainActionButtons.appendChild(customButtons);
 		ZKUpdateUtil.setHflex(customButtons, "1");
 		
 		footerApprovalArea.appendChild(mainActionButtons);
 
-
-		// ================================================================
-		// BAGIAN 5: LAYOUT UTAMA BORDERLAYOUT
-		// ================================================================
+		//Part 5: Main layout - mainChatlayout
 		Borderlayout mainChatLayout = new Borderlayout();
 		ZKUpdateUtil.setWidth(mainChatLayout, "100%");
 		ZKUpdateUtil.setHeight(mainChatLayout, "100%");
 		mainChatLayout.setStyle("background-color: #f7f9fa; position: relative;");
 
-		// Tempelkan Panel Kiri (Daftar Approval)
+		//Part 5.1: Put westPanel (List Approval)
 		mainChatLayout.appendChild(westPanel);
 
-		// Panel Kanan/Tengah (Area Isi Detail & Aksi)
+		//Part 5.2: Put centerPanel(Detail Area: Node, Detail and Action)
 		Center centerPanel = new Center();
 		centerPanel.setStyle("background-color: transparent; overflow: auto;");
 
@@ -412,15 +429,15 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		chatAreaLayout.setSpacing("15px");
 		chatAreaLayout.setStyle("padding: 15px;");
 
-		// Urutan Sesuai Gambar Rencana Anda:
+		//Part 5.3: Sort by Node, Detail Approval and Approval Action
 		chatAreaLayout.appendChild(nodeApprovalArea);   // 1. Node Approval Section
-		chatAreaLayout.appendChild(tabboxDetail);       // 2. Tab Detail Transaksi & History
-		chatAreaLayout.appendChild(footerApprovalArea);  // 3. Blok Footer Aksi Approval
+		chatAreaLayout.appendChild(tabboxDetail);       // 2. Tab Details & History
+		chatAreaLayout.appendChild(footerApprovalArea);  // 3. Footer - Approval action
 
 		centerPanel.appendChild(chatAreaLayout);
 		mainChatLayout.appendChild(centerPanel);
 
-		// Status Bar di bawah panel utama
+		// Status Bar
 		South south = new South();
 		south.appendChild(statusBar);
 		south.setStyle("background-color: transparent;");
@@ -432,8 +449,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 	private void renderTransactionDetails(MWFActivity activity) {
         // Reset state view
-        lstTxLines.getChildren().clear();
-        grpTxDetails.setVisible(false);
+		lstTxLines.getChildren().clear();
+		grpTxDetails.setVisible(false);
+		lHdrDocNo.setValue("-");
+		lHdrDateDoc.setValue("-");
+		lHdrBPName.setValue("-");
+		lHdrGrandTotal.setValue("-");
         
         if (activity == null || activity.getRecord_ID() <= 0) 
             return;
@@ -447,12 +468,21 @@ public class WWFActivity extends ADForm implements EventListener<Event>
             if (headerPO == null) 
                 return;
             
-            // Menggunakan Java Reflection mencari method getLines() secara global
+			lHdrDocNo.setValue(getFieldValue(headerPO, "getDocumentNo"));
+        	lHdrDateDoc.setValue(getFieldValue(headerPO, "getCreated"));
+	        lHdrBPName.setValue(getBPName(headerPO));
+			String grandTotal = getFieldValue(headerPO, "getGrandTotal", "getTotalLines");
+			if ("-".equals(grandTotal)) {
+				grandTotal = calcTotalFromLines(headerPO);
+			}
+			lHdrGrandTotal.setValue(grandTotal);
+            
+			// Use Java Reflection to find getLines() method
             Method getLinesMethod = null;
             try {
                 getLinesMethod = headerPO.getClass().getMethod("getLines");
             } catch (NoSuchMethodException e) {
-                // Jika objek tidak punya method getLines (bukan tabel transaksi bertingkat), sembunyikan grid
+                //If object don't have getLines method, disable grid
                 grpTxDetails.setVisible(false);
                 return;
             }
@@ -460,9 +490,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
             Object[] lines = (Object[]) getLinesMethod.invoke(headerPO);
             
             if (lines != null && lines.length > 0) {
-                grpTxDetails.setVisible(true); // Tampilkan box panel detail
+                grpTxDetails.setVisible(true); //Enable detail panel box
                 
-                // Set Header Tabel Minimalis agar rapi di Mobile
+                //Minimize Set Header Table, for mobile friendly
                 Listhead listHead = new Listhead();
                 listHead.appendChild(createHeader("Description", "2"));
                 listHead.appendChild(createHeader("Qty", "1"));
