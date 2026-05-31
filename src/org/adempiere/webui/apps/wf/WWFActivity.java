@@ -496,14 +496,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                 Listhead listHead = new Listhead();
                 listHead.appendChild(createHeader("Description", "2"));
                 listHead.appendChild(createHeader("Qty", "1"));
-                listHead.appendChild(createHeader("Total Harga", "1"));
+                listHead.appendChild(createHeader("Total", "1"));
                 lstTxLines.appendChild(listHead);
                 
-                // Mengambil nilai field line secara dinamis
                 for (Object line : lines) {
                     Listitem item = new Listitem();
-                    
-                    // 1. Ambil Nama Produk / Deskripsi Item
                     String itemDetail = "Item";
                     try {
                         Method getProductMethod = line.getClass().getMethod("getM_Product");
@@ -520,7 +517,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                         } catch (Exception ex) {}
                     }
                     
-                    // 2. Ambil nilai Qty (Mencoba kecocokan method getter Qty yang umum)
                     String qty = "0";
                     String[] qtyMethodNames = {"getQtyInvoiced", "getQtyOrdered", "getQtyEntered", "getQtyField", "getQtyDelivered"};
                     for (String methodName : qtyMethodNames) {
@@ -534,7 +530,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                         } catch (Exception e) {}
                     }
                     
-                    // 3. Ambil nilai Total Harga / Line Net Amount
                     String lineNetAmt = "0";
                     try {
                         Method getLineNetAmt = line.getClass().getMethod("getLineNetAmt");
@@ -549,7 +544,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                         } catch (Exception ex) {}
                     }
                     
-                    // Masukkan komponen teks ke dalam baris ZK Listbox
                     item.appendChild(new Listcell(itemDetail));
                     item.appendChild(new Listcell(qty));
                     item.appendChild(new Listcell(lineNetAmt));
@@ -557,17 +551,44 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                 }
             }
         } catch (Exception e) {
-            log.log(Level.SEVERE, "Gagal memproses refleksi detail transaksi di form approval", e);
+            log.log(Level.SEVERE, "Failed to process", e);
         }
     }
 
-	// Helper membuat header dengan rasio lebar persentase fleksibel (hflex)
-    private Listheader createHeader(String label, String ratio) {
+	private Listheader createHeader(String label, String ratio) {
         Listheader header = new Listheader(label);
         header.setHflex(ratio); 
         return header;
     }
-	
+
+	private void executeApprovalDirectly(boolean isApproved) {
+		if (m_activity == null) return;
+
+		try {
+			// 1. Deteksi komponen input jawaban bawaan iDempiere
+			if (fAnswerList.isVisible() && fAnswerList.getItemCount() > 0) {
+				// Jika tipe datanya Yes/No (1 untuk Yes/Approve, 0 untuk No/Reject)
+				if (isApproved) {
+					fAnswerList.setSelectedIndex(0); // Biasanya indeks 0 adalah 'Yes' / 'Approve'
+				} else {
+					fAnswerList.setSelectedIndex(1); // Biasanya indeks 1 adalah 'No' / 'Reject'
+				}
+			} else if (fAnswerText.isVisible()) {
+				// Jika tipenya isian teks bebas
+				fAnswerText.setText(isApproved ? "Approved" : "Rejected");
+			}
+
+			// 2. Kirim catatan evaluasi dari kolom pesan (fTextMsg) jika diisi user
+			
+			// 3. Picu secara keras Event klik tombol OK bawaan iDempiere
+			org.zkoss.zk.ui.event.Event clickEvent = new org.zkoss.zk.ui.event.Event(Events.ON_CLICK, bOK);
+			org.zkoss.zk.ui.event.Events.sendEvent(bOK, clickEvent);
+			
+		} catch (Exception ex) {
+			log.log(java.util.logging.Level.SEVERE, "Gagal mengeksekusi aksi tombol persetujuan kustom", ex);
+		}
+	}
+
 	@Override
 	public void onEvent(Event event) throws Exception
 	{
