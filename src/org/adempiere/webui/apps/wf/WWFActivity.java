@@ -84,12 +84,15 @@ import org.zkoss.zul.Html;
 import org.zkoss.zul.North;
 import org.zkoss.zul.South;
 import org.zkoss.zul.Vlayout;
-import org.zkoss.zul.Groupbox grpDetails;
-import org.zkoss.zul.Listbox lstLines;
+import org.zkoss.zul.Groupbox;
 import java.lang.reflect.Method;
 import org.zkoss.zk.ui.Component;
 import org.zkoss.zul.Listhead;
 import org.zkoss.zul.Listheader;
+import org.zkoss.zul.Tabbox;
+import org.zkoss.zul.Tabs;
+import org.zkoss.zul.Tabpanels;
+import org.zkoss.zul.Tabpanel;
 
 /**
  * Workflow activity form
@@ -137,10 +140,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Button bRefresh = new Button();
 
 	private ListModelTable model = null;
-	private WListbox listbox = new WListbox();		private org.zkoss.zul.Groupbox grpDetails;
-	private org.zkoss.zul.Listbox lstLines;
-
-
+	private WListbox listbox = new WListbox();		
+	private Groupbox grpTxDetails = new Groupbox();
+	private Listbox lstTxLines = new Listbox();
+    private Label titleNode = new Label(Msg.getMsg(Env.getCtx(), "Approval Node"));
+	private	Label titleAction = new Label(Msg.getMsg(Env.getCtx(),"Aksi Approval"));
 	private final static String HISTORY_DIV_START_TAG = "<div style='overflow-y:scroll;height: 100px; border: 1px solid #7F9DB9;'>";
 	
 	/**
@@ -200,15 +204,15 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private void init()
 	{
 		// ================================================================
-		// BAGIAN 1: WEST PANEL (Daftar Approval Modern)
+		// Part 1: West Panel (Approval List)
 		// ================================================================
 		West westPanel = new West();
 		westPanel.setSize("320px");
 		westPanel.setSplittable(true);
 		westPanel.setCollapsible(true);
-		westPanel.setTitle("Antrean Approval / Approvals");
+		westPanel.setTitle("List Approvals");
 		
-		// Listbox dikonfigurasi agar itemnya menumpuk rapi seperti contoh desain Anda
+		// The listbox is configured so that its items stack neatly.
 		listbox.setSclass("wf-approval-listbox");
 		ZKUpdateUtil.setVflex(listbox, "1");
 		ZKUpdateUtil.setHflex(listbox, "1");
@@ -217,16 +221,15 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 
 		// ================================================================
-		// BAGIAN 2: CENTER PANEL - NODE APPROVAL (Grid Atas)
+		// Part 2: Center Panel - Node Aproval
 		// ================================================================
-		// Menggunakan susunan vertikal murni tanpa grid table agar tidak kaku
+		// Change to vertikal: label over field
 		Vlayout nodeApprovalArea = new Vlayout();
 		nodeApprovalArea.setHflex("1");
 		nodeApprovalArea.setSpacing("8px");
 		nodeApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px;");
 
-		// Judul Section
-		org.zkoss.zul.Label titleNode = new org.zkoss.zul.Label("Node Approval:");
+		//Title Section
 		titleNode.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block; margin-bottom: 5px;");
 		nodeApprovalArea.appendChild(titleNode);
 
@@ -268,26 +271,26 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 
 		// ================================================================
-		// BAGIAN 3: CENTER PANEL - TAB LAYOUT (Detail Transaksi vs History)
+		// Part 3: Center Panel - Tab Layout(Detail Transaction and History)
 		// ================================================================
-		org.zkoss.zul.Tabbox tabboxDetail = new org.zkoss.zul.Tabbox();
+		Tabbox tabboxDetail = new Tabbox();
 		tabboxDetail.setHflex("1");
 
-		org.zkoss.zul.Tabs tabs = new org.zkoss.zul.Tabs();
+		Tabs tabs = new Tabs();
 		tabboxDetail.appendChild(tabs);
-		org.zkoss.zul.Tab tabLines = new org.zkoss.zul.Tab("Detail Transaksi");
-		org.zkoss.zul.Tab tabHistory = new org.zkoss.zul.Tab("History");
+		Tab tabLines = new Tab("Detail Transaksi");
+		Tab tabHistory = new Tab(lHistory);
 		tabs.appendChild(tabLines);
 		tabs.appendChild(tabHistory);
 
-		org.zkoss.zul.Tabpanels tabpanels = new org.zkoss.zul.Tabpanels();
+		Tabpanels tabpanels = new Tabpanels();
 		tabboxDetail.appendChild(tabpanels);
 
-		// --- Tabpanel 1: Detail Transaksi (Header, BP, Lines) ---
-		org.zkoss.zul.Tabpanel panelLines = new org.zkoss.zul.Tabpanel();
+		// --- Tabpanel 1: Detail Transaction (Header, BP, Lines) ---
+		Tabpanel panelLines = new Tabpanel();
 		tabpanels.appendChild(panelLines);
 
-		grpTxDetails = new org.zkoss.zul.Groupbox();
+		Groupbox grpTxDetails = new Groupbox();
 		grpTxDetails.setCaption("Header & Lines");
 		grpTxDetails.setOpen(true);
 		grpTxDetails.setHflex("1");
@@ -295,7 +298,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		grpTxDetails.setStyle("border: none; padding: 0;");
 
 		// Struktur Listbox Lines bawaan iDempiere Anda dimasukkan ke dalam groupbox ini
-		lstTxLines = new org.zkoss.zul.Listbox();
+		Listbox lstTxLines = new Listbox();
 		lstTxLines.setHflex("1");
 		lstTxLines.setSpan(true);
 		lstTxLines.setSclass("mobile-scrollable-list");
@@ -303,7 +306,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		panelLines.appendChild(grpTxDetails);
 
 		// --- Tabpanel 2: History ---
-		org.zkoss.zul.Tabpanel panelHistory = new org.zkoss.zul.Tabpanel();
+		Tabpanel panelHistory = new Tabpanel();
 		tabpanels.appendChild(panelHistory);
 
 		Vlayout historyLayout = new Vlayout();
@@ -318,15 +321,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 
 		// ================================================================
-		// BAGIAN 4: CENTER PANEL - AKSI APPROVAL (Footer Bawah)
+		// Part 4: Center Panel - Approval Action(Footer)
 		// ================================================================
 		Vlayout footerApprovalArea = new Vlayout();
 		footerApprovalArea.setHflex("1");
 		footerApprovalArea.setSpacing("12px");
 		footerApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 10px;");
 
-		// Judul Section Footer
-		org.zkoss.zul.Label titleAction = new org.zkoss.zul.Label("Aksi Approval");
+		// Footer Title Section
 		titleAction.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block;");
 		footerApprovalArea.appendChild(titleAction);
 
