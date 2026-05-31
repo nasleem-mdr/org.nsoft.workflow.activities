@@ -90,7 +90,9 @@ import org.zkoss.zk.ui.Component;
 import org.zkoss.zul.Listhead;
 import org.zkoss.zul.Listheader;
 import org.zkoss.zul.Tabbox;
+import org.zkoss.zul.Listcell;
 import org.zkoss.zul.Tabs;
+import org.zkoss.zul.Tab;
 import org.zkoss.zul.Tabpanels;
 import org.zkoss.zul.Tabpanel;
 
@@ -290,7 +292,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		Tabpanel panelLines = new Tabpanel();
 		tabpanels.appendChild(panelLines);
 
-		Groupbox grpTxDetails = new Groupbox();
+		grpTxDetails = new Groupbox();
 		grpTxDetails.setCaption("Header & Lines");
 		grpTxDetails.setOpen(true);
 		grpTxDetails.setHflex("1");
@@ -298,7 +300,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		grpTxDetails.setStyle("border: none; padding: 0;");
 
 		// Struktur Listbox Lines bawaan iDempiere Anda dimasukkan ke dalam groupbox ini
-		Listbox lstTxLines = new Listbox();
+		lstTxLines = new Listbox();
 		lstTxLines.setHflex("1");
 		lstTxLines.setSpan(true);
 		lstTxLines.setSclass("mobile-scrollable-list");
@@ -465,7 +467,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                 listHead.appendChild(createHeader("Description", "2"));
                 listHead.appendChild(createHeader("Qty", "1"));
                 listHead.appendChild(createHeader("Total Harga", "1"));
-                lstLines.appendChild(listHead);
+                lstTxLines.appendChild(listHead);
                 
                 // Mengambil nilai field line secara dinamis
                 for (Object line : lines) {
