@@ -345,7 +345,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		footerApprovalArea.appendChild(msgGroup);
 
 		// Answer Row (Jika ada pilihan jawaban text/list drop down bawaan iDempiere)
-		org.zkoss.zul.Hlayout answerRow = new org.zkoss.zul.Hlayout();
+		FlexHlayout answerRow = new FlexHlayout();
 		answerRow.setHflex("1");
 		answerRow.setValign("middle");
 		lAnswer.setStyle("font-weight: 600; color: #4a5568; font-size: 12px; margin-right: 5px;");
@@ -365,7 +365,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		lForward.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
 		forwardSection.appendChild(lForward);
 		
-		org.zkoss.zul.Hlayout forwardActions = new org.zkoss.zul.Hlayout();
+		FlexHlayout forwardActions = new FlexHlayout();
 		forwardActions.setHflex("1");
 		forwardActions.setValign("middle");
 		forwardActions.appendChild(fForward.getComponent());
@@ -378,12 +378,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		footerApprovalArea.appendChild(forwardSection);
 
 		// Tombol Utama Paling Bawah: [ Approve ]  ||  [ Reject ]
-		org.zkoss.zul.Hlayout mainActionButtons = new org.zkoss.zul.Hlayout();
+		FlexHlayout mainActionButtons = new FlexHlayout();
 		mainActionButtons.setHflex("1");
 		mainActionButtons.setSpacing("15px");
 		
 		// Ambil tombol modern bawaan Anda melalui fungsi createModernActionButtons()
-		org.zkoss.zul.Hlayout customButtons = createModernActionButtons();
+		FlexHlayout customButtons = createModernActionButtons();
 		mainActionButtons.appendChild(customButtons);
 		ZKUpdateUtil.setHflex(customButtons, "1");
 		
@@ -429,9 +429,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	}
 
 	private void renderTransactionDetails(MWFActivity activity) {
-        // Reset state tampilan
-        lstLines.getChildren().clear();
-        grpDetails.setVisible(false);
+        // Reset state view
+        lstTxLines.getChildren().clear();
+        grpTxDetails.setVisible(false);
         
         if (activity == null || activity.getRecord_ID() <= 0) 
             return;
@@ -451,18 +451,18 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                 getLinesMethod = headerPO.getClass().getMethod("getLines");
             } catch (NoSuchMethodException e) {
                 // Jika objek tidak punya method getLines (bukan tabel transaksi bertingkat), sembunyikan grid
-                grpDetails.setVisible(false);
+                grpTxDetails.setVisible(false);
                 return;
             }
             
             Object[] lines = (Object[]) getLinesMethod.invoke(headerPO);
             
             if (lines != null && lines.length > 0) {
-                grpDetails.setVisible(true); // Tampilkan box panel detail
+                grpTxDetails.setVisible(true); // Tampilkan box panel detail
                 
                 // Set Header Tabel Minimalis agar rapi di Mobile
                 Listhead listHead = new Listhead();
-                listHead.appendChild(createHeader("Produk / Deskripsi", "2"));
+                listHead.appendChild(createHeader("Description", "2"));
                 listHead.appendChild(createHeader("Qty", "1"));
                 listHead.appendChild(createHeader("Total Harga", "1"));
                 lstLines.appendChild(listHead);
@@ -472,7 +472,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                     Listitem item = new Listitem();
                     
                     // 1. Ambil Nama Produk / Deskripsi Item
-                    String itemDetail = "Item / Line";
+                    String itemDetail = "Item";
                     try {
                         Method getProductMethod = line.getClass().getMethod("getM_Product");
                         Object product = getProductMethod.invoke(line);
@@ -521,7 +521,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                     item.appendChild(new Listcell(itemDetail));
                     item.appendChild(new Listcell(qty));
                     item.appendChild(new Listcell(lineNetAmt));
-                    lstLines.appendChild(item);
+                    lstTxLines.appendChild(item);
                 }
             }
         } catch (Exception e) {
