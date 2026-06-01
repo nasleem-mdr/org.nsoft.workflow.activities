@@ -286,7 +286,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 		// Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
 		Tabpanel panelLines = new Tabpanel();
-        panelLines.appendChild(grpTxDetails);
         tabpanels.appendChild(panelLines);
 		
 		//grpTxDetails = new Groupbox();
