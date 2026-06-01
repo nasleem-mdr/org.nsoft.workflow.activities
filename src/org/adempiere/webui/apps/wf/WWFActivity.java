@@ -440,6 +440,140 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		this.setStyle("height: 100%; width: 100%; position: relative;");
 	}
 
+private void renderTransactionDetails(MWFActivity activity) {
+    // 1. Bersihkan baris lama di UI Listbox
+    if (lstTxLines.getItemCount() > 0) {
+        List<Listitem> items = new ArrayList<>(lstTxLines.getItems());
+        for (Listitem item : items) {
+            lstTxLines.removeChild(item);
+        }
+    }
+    
+    grpTxDetails.setVisible(true);
+    lHdrDocNo.setValue("-");
+    lHdrDateDoc.setValue("-");
+    lHdrBPName.setValue("-");
+    lHdrGrandTotal.setValue("-");
+
+    if (activity == null || activity.getRecord_ID() <= 0) return;
+
+    try {
+        int tableId = activity.getAD_Table_ID();
+        MTable table = MTable.get(Env.getCtx(), tableId);
+        
+        // Mengambil objek PO secara generik (tanpa cast ke MOrder/MInvoice)
+        PO headerPO = table.getPO(activity.getRecord_ID(), null);
+        if (headerPO == null) return;
+
+        // --- BAGIAN HEADER: Menggunakan get_Value atau get_ValueAsString ---
+		// 1. Ambil DocumentNo, jika tidak ada cari kolom alternatif (Value, Name, atau ID)
+        String docNo = headerPO.get_ValueAsString("DocumentNo");
+        if (docNo == null || docNo.isEmpty()) {
+            docNo = headerPO.get_ValueAsString("Value"); // misal untuk M_Product
+        }
+        if (docNo == null || docNo.isEmpty()) {
+            docNo = headerPO.get_ValueAsString("Name");  // misal untuk tabel master lain
+        }
+        if (docNo == null || docNo.isEmpty()) {
+            // Jika tidak ada nama/value, tampilkan nama tabel + ID-nya
+        docNo = headerPO.get_TableName() + " #" + headerPO.get_ID(); 
+    }
+    lHdrDocNo.setValue(docNo);
+
+    // 2. Ambil BPartner, jika tidak ada kolom C_BPartner_ID, kosongkan atau cari Info User pembuat
+    int bpId = headerPO.get_ValueAsInt("C_BPartner_ID");
+    if (bpId > 0) {
+            org.compiere.model.MBPartner bp = new org.compiere.model.MBPartner(Env.getCtx(), bpId, null);
+            lHdrBPName.setValue(bp.getName());
+        } else {
+            // Jika bukan dokumen transaksi (tidak ada BP), tampilkan nama user yang membuat dokumen ini
+            int userId = headerPO.getCreatedBy();
+            org.compiere.model.MUser user = new org.compiere.model.MUser(Env.getCtx(), userId, null);
+            lHdrBPName.setValue("Created By: " + user.getName());
+        }
+		
+        lHdrDateDoc.setValue(formatDate(activity.getCreated()));
+        
+        // Ambil BPartner ID menggunakan get_ValueAsInt secara generik
+        int bpId = headerPO.get_ValueAsInt("C_BPartner_ID");
+        if (bpId > 0) {
+            org.compiere.model.MBPartner bp = new org.compiere.model.MBPartner(Env.getCtx(), bpId, null);
+            lHdrBPName.setValue(bp.getName());
+        }
+
+        // Ambil GrandTotal secara generik
+        java.math.BigDecimal grandTotal = headerPO.get_ValueAsBigDecimal("GrandTotal");
+        if (grandTotal == null) grandTotal = headerPO.get_ValueAsBigDecimal("TotalLines");
+        lHdrGrandTotal.setValue(grandTotal != null ? grandTotal.toString() : "-");
+
+        // --- BAGIAN DETAIL: Mengambil Lines menggunakan Reflection Generik ---
+        Object[] lines = null;
+        try {
+            Method getLinesMethod = headerPO.getClass().getMethod("getLines");
+            lines = (Object[]) getLinesMethod.invoke(headerPO);
+        } catch (NoSuchMethodException e) {
+            try {
+                // Fallback jika method getLines butuh parameter TrxName
+                Method getLinesMethod = headerPO.getClass().getMethod("getLines", String.class);
+                lines = (Object[]) getLinesMethod.invoke(headerPO, headerPO.get_TrxName());
+            } catch (Exception ignored) {}
+        }
+
+        if (lines != null && lines.length > 0) {
+            // Ambil daftar nama kolom dari SysConfig yang sudah di-set di Step 1
+            String sysConfigQty = MSysConfig.getValue("WF_APPROVAL_QTY_COLUMNS", "QtyOrdered,QtyInvoiced,Qty", activity.getAD_Client_ID());
+            String sysConfigAmt = MSysConfig.getValue("WF_APPROVAL_AMT_COLUMNS", "LineNetAmt,PriceActual", activity.getAD_Client_ID());
+            
+            String[] qtyColumns = sysConfigQty.split(",");
+            String[] amtColumns = sysConfigAmt.split(",");
+
+            for (Object lineObj : lines) {
+                // Cast ke objek PO generik (Tidak butuh import MOrderLine / MInvoiceLine!)
+                PO line = (PO) lineObj; 
+                Listitem item = new Listitem();
+
+                // 1. Ambil Deskripsi/Product
+                String itemDetail = "-";
+                int productId = line.get_ValueAsInt("M_Product_ID");
+                if (productId > 0) {
+                    org.compiere.model.MProduct prod = new org.compiere.model.MProduct(Env.getCtx(), productId, null);
+                    itemDetail = prod.getName();
+                } else {
+                    itemDetail = line.get_ValueAsString("Description");
+                }
+
+                // 2. Ambil Qty secara dinamis berdasarkan list dari SysConfig
+                String qtyValue = "0";
+                for (String colName : qtyColumns) {
+                    Object val = line.get_Value(colName.trim());
+                    if (val != null) {
+                        qtyValue = val.toString();
+                        break; // Berhenti jika kolom terdeteksi ada nilainya
+                    }
+                }
+
+                // 3. Ambil Amount/Total secara dinamis berdasarkan list dari SysConfig
+                String amtValue = "0";
+                for (String colName : amtColumns) {
+                    Object val = line.get_Value(colName.trim());
+                    if (val != null) {
+                        amtValue = val.toString();
+                        break; // Berhenti jika kolom terdeteksi ada nilainya
+                    }
+                }
+
+                // Tambahkan ke UI Listbox detail
+                item.appendChild(new Listcell(itemDetail != null ? itemDetail : "Item"));
+                item.appendChild(new Listcell(qtyValue));
+                item.appendChild(new Listcell(amtValue));
+                lstTxLines.appendChild(item);
+            }
+        }
+    } catch (Exception e) {
+        log.log(Level.SEVERE, "Gagal memproses renderTransactionDetails secara dinamis", e);
+    }
+}
+	
 	private void renderTransactionDetails(MWFActivity activity) {
 		// Bersihkan baris lama tapi biarkan komponen Listhead tetap terjaga
 		if (lstTxLines.getItemCount() > 0) {
