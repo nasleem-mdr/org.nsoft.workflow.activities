@@ -286,8 +286,10 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 		// Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
 		Tabpanel panelLines = new Tabpanel();
-
-		grpTxDetails = new Groupbox();
+        panelLines.appendChild(grpTxDetails);
+        tabpanels.appendChild(panelLines);
+		
+		//grpTxDetails = new Groupbox();
 		grpTxDetails.setCaption("Header Doc");
 		grpTxDetails.setOpen(true);
 		grpTxDetails.setHflex("1");
@@ -326,7 +328,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		headerGrid.appendChild(rows);
 		grpTxDetails.appendChild(headerGrid); 
 
-		lstTxLines = new Listbox();
+		//lstTxLines = new Listbox();
 		lstTxLines.setHflex("1");
 		lstTxLines.setSpan(true);
 		lstTxLines.setSclass("mobile-scrollable-list");
@@ -341,8 +343,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		panelLines.appendChild(grpTxDetails); 
 		
 		// Part 3.3: Membuat Tabpanel 2 - History
-		Tabpanel panelHistory = new Tabpanel();
-		tabpanels.appendChild(panelLines);    
+		Tabpanel panelHistory = new Tabpanel(); 
 		tabpanels.appendChild(panelHistory);  
 
 		Vlayout historyLayout = new Vlayout();
@@ -351,7 +352,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		lHistory.setStyle("font-weight: bold; color: #2d3748;");
 		historyLayout.appendChild(lHistory);
 		historyLayout.appendChild(fHistory);
-		ZKUpdateUtil.setHflex(fHistory, "true");
+		//ZKUpdateUtil.setHflex(fHistory, "true");
+		fHistory.setStyle("width: 100%; ...");
 		fHistory.setStyle("border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px;");
 		panelHistory.appendChild(historyLayout);
 
@@ -405,14 +407,17 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		forwardSection.appendChild(forwardActions);
 		
 		footerApprovalArea.appendChild(forwardSection);
-
-		FlexHlayout mainActionButtons = new FlexHlayout();
+        // Langsung append hasil createModernActionButtons() ke footer:
+        FlexHlayout actionButtons = createModernActionButtons();
+        footerApprovalArea.appendChild(actionButtons);
+        // Tidak perlu wrapper tambahan
+		//FlexHlayout mainActionButtons = new FlexHlayout();
 		mainActionButtons.setHflex("1");
 		mainActionButtons.setSpacing("15px");
 		
-		FlexHlayout customButtons = createModernActionButtons();
-		mainActionButtons.appendChild(customButtons);
-		ZKUpdateUtil.setHflex(customButtons, "1");
+		//FlexHlayout customButtons = createModernActionButtons();
+		//mainActionButtons.appendChild(customButtons);
+		//ZKUpdateUtil.setHflex(customButtons, "1");
 		
 		footerApprovalArea.appendChild(mainActionButtons);
 
@@ -489,10 +494,13 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			try {
 				getLinesMethod = headerPO.getClass().getMethod("getLines");
 			} catch (NoSuchMethodException e) {
-				log.warning("Dokumen " + headerPO.get_TableName() + " tidak memiliki metode getLines().");
-				return; 
-			}
-
+                log.warning("...");
+                // Sembunyikan section lines jika tidak ada:
+                lstTxLines.setVisible(false);
+                grpTxDetails.setCaption("Header Doc (Tanpa Baris)");
+                return;
+	    	}
+			
 			Object[] lines = (Object[]) getLinesMethod.invoke(headerPO);
 			if (lines != null && lines.length > 0) {
 				for (Object line : lines) {
