@@ -352,9 +352,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		lHistory.setStyle("font-weight: bold; color: #2d3748;");
 		historyLayout.appendChild(lHistory);
 		historyLayout.appendChild(fHistory);
-		//ZKUpdateUtil.setHflex(fHistory, "true");
-		fHistory.setStyle("width: 100%; ...");
-		fHistory.setStyle("border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px;");
+		fHistory.setStyle("width: 100%;border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px;");
 		panelHistory.appendChild(historyLayout);
 
 		// Part 4: Center Panel - Approval Action (Footer)
@@ -410,16 +408,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         // Langsung append hasil createModernActionButtons() ke footer:
         FlexHlayout actionButtons = createModernActionButtons();
         footerApprovalArea.appendChild(actionButtons);
-        // Tidak perlu wrapper tambahan
-		//FlexHlayout mainActionButtons = new FlexHlayout();
-		mainActionButtons.setHflex("1");
-		mainActionButtons.setSpacing("15px");
-		
-		//FlexHlayout customButtons = createModernActionButtons();
-		//mainActionButtons.appendChild(customButtons);
-		//ZKUpdateUtil.setHflex(customButtons, "1");
-		
-		footerApprovalArea.appendChild(mainActionButtons);
 
 		// Part 5: Main layout
 		Borderlayout mainChatLayout = new Borderlayout();
