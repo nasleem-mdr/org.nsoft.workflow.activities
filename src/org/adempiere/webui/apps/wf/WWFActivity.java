@@ -158,7 +158,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Label lHdrDateDoc    = new Label();
 	private Label lHdrBPName     = new Label();
 	private Label lHdrGrandTotal = new Label();
-	
+	private Tabbox tabboxDetail = new Tabbox();
+	private Tabpanels tabpanels = new Tabpanels();
+
 	private FlexHlayout createModernActionButtons() {
 		FlexHlayout buttonLayout = new FlexHlayout();
 		buttonLayout.setHflex("1");
@@ -302,9 +304,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		nodeApprovalArea.appendChild(helpGroup);
 
 				//Part 3.1: Tabpanel 1 - Detail Transaction (Header, BP, Lines)
+				
 		Tabpanel panelLines = new Tabpanel();
 		tabpanels.appendChild(panelLines);
-
+		Tabs tabs = new Tabs();
+		tabs.appendChild(new Tab("Detail Transaksi"));
+		tabs.appendChild(new Tab("Riwayat"));
+		tabboxDetail.appendChild(tabs);
+		tabboxDetail.appendChild(tabpanels);
 		grpTxDetails = new Groupbox();
 		grpTxDetails.setCaption("Header Doc");
 		grpTxDetails.setOpen(true);
@@ -473,114 +480,101 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	}
 
 	private void renderTransactionDetails(MWFActivity activity) {
-        // Reset state view
-		lstTxLines.getChildren().clear();
+		// 1. Reset state view awal
+		lstTxLines.getItems().clear(); // Cukup hapus item-nya saja, jangan clear total agar Listhead di init() tidak hilang
 		grpTxDetails.setVisible(false);
 		lHdrDocNo.setValue("-");
 		lHdrDateDoc.setValue("-");
 		lHdrBPName.setValue("-");
 		lHdrGrandTotal.setValue("-");
-        
-        if (activity == null || activity.getRecord_ID() <= 0) 
-            return;
-        
-        try {
-            int tableId = activity.getAD_Table_ID();
-            MTable table = MTable.get(Env.getCtx(), tableId);
-            //PO headerPO = table.getPO(activity.getRecord_ID(), activity.get_TrxName());
-			PO headerPO = table.getPO(activity.getRecord_ID(), null); 
-            
-            if (headerPO == null) 
-                return;
-            
+
+		if (activity == null || activity.getRecord_ID() <= 0) return;
+
+		try {
+			int tableId = activity.getAD_Table_ID();
+			MTable table = MTable.get(Env.getCtx(), tableId);
+			PO headerPO = table.getPO(activity.getRecord_ID(), null);
+			
+			if (headerPO == null) return;
+
+			// Tampilkan container groupbox karena dokumen ditemukan
+			grpTxDetails.setVisible(true);
+
+			// Set Nilai Header Component
 			lHdrDocNo.setValue(getFieldValue(headerPO, "getDocumentNo"));
-        	//getCreated take from MWFActivity (can use for KPI)
-			Object rawDate = activity.getCreated(); 
+			Object rawDate = activity.getCreated();
 			lHdrDateDoc.setValue(formatDate(rawDate));
-	        lHdrBPName.setValue(getBPName(headerPO));
+			lHdrBPName.setValue(getBPName(headerPO));
+			
 			String grandTotal = getFieldValue(headerPO, "getGrandTotal", "getTotalLines");
 			if ("-".equals(grandTotal)) {
 				grandTotal = calcTotalFromLines(headerPO);
 			}
 			lHdrGrandTotal.setValue(grandTotal);
-            
-			// Use Java Reflection to find getLines() method
-            Method getLinesMethod = null;
-            try {
-                getLinesMethod = headerPO.getClass().getMethod("getLines");
-            } catch (NoSuchMethodException e) {
-                //If object don't have getLines method, disable grid
-                grpTxDetails.setVisible(false);
-                return;
-            }
-            
-            Object[] lines = (Object[]) getLinesMethod.invoke(headerPO);
-            
-            if (lines != null && lines.length > 0) {
-                grpTxDetails.setVisible(true); //Enable detail panel box
-                
-                //Minimize Set Header Table, for mobile friendly
-                Listhead listHead = new Listhead();
-                listHead.appendChild(createHeader("Description", "2"));
-                listHead.appendChild(createHeader("Qty", "1"));
-                listHead.appendChild(createHeader("Total", "1"));
-                lstTxLines.appendChild(listHead);
-                
-                for (Object line : lines) {
-                    Listitem item = new Listitem();
-                    String itemDetail = "Item";
-                    try {
-                        Method getProductMethod = line.getClass().getMethod("getM_Product");
-                        Object product = getProductMethod.invoke(line);
-                        if (product != null) {
-                            Method getNameMethod = product.getClass().getMethod("getName");
-                            itemDetail = (String) getNameMethod.invoke(product);
-                        }
-                    } catch (Exception e) {
-                        try {
-                            Method getDescriptionMethod = line.getClass().getMethod("getDescription");
-                            Object desc = getDescriptionMethod.invoke(line);
-                            if (desc != null) itemDetail = desc.toString();
-                        } catch (Exception ex) {}
-                    }
-                    
-                    String qty = "0";
-                    String[] qtyMethodNames = {"getQtyInvoiced", "getQtyOrdered", "getQtyEntered", "getQtyField", "getQtyDelivered"};
-                    for (String methodName : qtyMethodNames) {
-                        try {
-                            Method getQty = line.getClass().getMethod(methodName);
-                            Object qtyObj = getQty.invoke(line);
-                            if (qtyObj != null) {
-                                qty = qtyObj.toString();
-                                break;
-                            }
-                        } catch (Exception e) {}
-                    }
-                    
-                    String lineNetAmt = "0";
-                    try {
-                        Method getLineNetAmt = line.getClass().getMethod("getLineNetAmt");
-                        Object amtObj = getLineNetAmt.invoke(line);
-                        if (amtObj != null) lineNetAmt = amtObj.toString();
-                    } catch (Exception e) {
-                        try {
-                            // Alternatif jika tidak ada getLineNetAmt (misal di beberapa dokumen internal)
-                            Method getPriceActual = line.getClass().getMethod("getPriceActual");
-                            Object priceObj = getPriceActual.invoke(line);
-                            if (priceObj != null) lineNetAmt = priceObj.toString();
-                        } catch (Exception ex) {}
-                    }
-                    
-                    item.appendChild(new Listcell(itemDetail));
-                    item.appendChild(new Listcell(qty));
-                    item.appendChild(new Listcell(lineNetAmt));
-                    lstTxLines.appendChild(item);
-                }
-            }
-        } catch (Exception e) {
-            log.log(Level.SEVERE, "Failed to process", e);
-        }
-    }
+
+			// 2. Ambil data Lines menggunakan Java Reflection
+			Method getLinesMethod = null;
+			try {
+				getLinesMethod = headerPO.getClass().getMethod("getLines");
+			} catch (NoSuchMethodException e) {
+				// Jika dokumen tidak punya baris/lines (misal dokumen cetak cetak berseri tertentu), 
+				// biarkan header tetap tampil namun jangan teruskan ke loop lines.
+				log.warning("Dokumen " + headerPO.get_TableName() + " tidak memiliki metode getLines().");
+				return; 
+			}
+
+			Object[] lines = (Object[]) getLinesMethod.invoke(headerPO);
+			if (lines != null && lines.length > 0) {
+				
+				// Catatan: Pastikan komponen `Listhead` sudah Anda tempel sekali saja di metode init() 
+				// Contoh di init(): lstTxLines.appendChild(listHead);
+
+				for (Object line : lines) {
+					Listitem item = new Listitem();
+					
+					// Ambil Nama Produk / Deskripsi
+					String itemDetail = getProductName(line);
+					
+					// Ambil Quantity Dinamis
+					String qty = "0";
+					String[] qtyMethodNames = {"getQtyInvoiced", "getQtyOrdered", "getQtyEntered", "getQtyField", "getQtyDelivered", "getQty"};
+					for (String methodName : qtyMethodNames) {
+						try {
+							Method getQty = line.getClass().getMethod(methodName);
+							Object qtyObj = getQty.invoke(line);
+							if (qtyObj != null) {
+								qty = qtyObj.toString();
+								break;
+							}
+						} catch (Exception ignored) {}
+					}
+
+					// Ambil Nilai Total Line Dinamis
+					String lineNetAmt = "0";
+					try {
+						Method getLineNetAmt = line.getClass().getMethod("getLineNetAmt");
+						Object amtObj = getLineNetAmt.invoke(line);
+						if (amtObj != null) lineNetAmt = amtObj.toString();
+					} catch (Exception e) {
+						try {
+							Method getPriceActual = line.getClass().getMethod("getPriceActual");
+							Object priceObj = getPriceActual.invoke(line);
+							if (priceObj != null) lineNetAmt = priceObj.toString();
+						} catch (Exception ignored) {}
+					}
+
+					// Tambah data ke dalam baris tabel ZK
+					item.appendChild(new Listcell(itemDetail));
+					item.appendChild(new Listcell(qty));
+					item.appendChild(new Listcell(lineNetAmt));
+					lstTxLines.appendChild(item);
+				}
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Gagal memproses renderTransactionDetails kustom", e);
+		}
+	}
+
 	/**
 	 * Coba beberapa method getter, return nilai pertama yang tidak null/kosong.
 	 * Fallback akhir: "-"
