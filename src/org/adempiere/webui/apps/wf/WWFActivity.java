@@ -488,7 +488,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private void renderTransactionDetails(MWFActivity activity) {
 		// 1. Reset state view awal
 		lstTxLines.getItems().clear(); // Cukup hapus item-nya saja, jangan clear total agar Listhead di init() tidak hilang
-		grpTxDetails.setVisible(false);
+		grpTxDetails.setVisible(true);
 		lHdrDocNo.setValue("-");
 		lHdrDateDoc.setValue("-");
 		lHdrBPName.setValue("-");
