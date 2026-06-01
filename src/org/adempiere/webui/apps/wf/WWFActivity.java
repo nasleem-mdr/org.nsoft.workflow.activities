@@ -359,6 +359,13 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		lstTxLines.setHflex("1");
 		lstTxLines.setSpan(true);
 		lstTxLines.setSclass("mobile-scrollable-list");
+		Listhead listHead = new Listhead();
+
+		listHead.appendChild(createHeader("Description", "2")); // Kolom 1 (Lebih lebar)
+		listHead.appendChild(createHeader("Qty", "1"));         // Kolom 2
+		listHead.appendChild(createHeader("Total", "1"));       // Kolom 3
+		lstTxLines.appendChild(listHead);
+
 		grpTxDetails.appendChild(lstTxLines);
 		panelLines.appendChild(grpTxDetails);
 
