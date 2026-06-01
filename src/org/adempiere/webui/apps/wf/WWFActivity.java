@@ -302,75 +302,81 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fHelp.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; font-style: italic; color: #718096;");
 		nodeApprovalArea.appendChild(helpGroup);
 
-				//Part 3.1: Tabpanel 1 - Detail Transaction (Header, BP, Lines)
-				
-		Tabpanel panelLines = new Tabpanel();
-		tabpanels.appendChild(panelLines);
-		Tabs tabs = new Tabs();
-		tabs.appendChild(new Tab("Detail Transaksi"));
-		tabs.appendChild(new Tab("Riwayat"));
-		tabboxDetail.appendChild(tabs);
-		tabboxDetail.appendChild(tabpanels);
-		grpTxDetails = new Groupbox();
-		grpTxDetails.setCaption("Header Doc");
-		grpTxDetails.setOpen(true);
-		grpTxDetails.setHflex("1");
-		grpTxDetails.setVisible(true); 
-		grpTxDetails.setStyle("border: none; padding: 0;");
+    // Part 3.1: Struktur Tabbox Utama
+    Tabs tabs = new Tabs();
+    tabs.appendChild(new Tab("Detail Transaksi")); // Tab indeks 0
+    tabs.appendChild(new Tab("Riwayat"));          // Tab indeks 1
+    tabboxDetail.appendChild(tabs);       
 
-		// --- TAMBAHKAN LAYOUT UNTUK LABEL HEADER DI SINI ---
-		Grid headerGrid = new Grid();
-		headerGrid.setStyle("border: none; margin-bottom: 10px;");
-		Columns columns = new Columns();
-		columns.appendChild(new Column());
-		columns.appendChild(new Column());
-		headerGrid.appendChild(columns);
+    // Pastikan variabel tabpanels sudah di-instansiasi sebelum di-append
+    // tabpanels = new Tabpanels(); 
+    tabboxDetail.appendChild(tabpanels);  
 
-		Rows rows = new Rows();
-		
-		// Baris 1: No Dokumen & Tanggal
-		Row row1 = new Row();
-		row1.appendChild(new Label("Doc No:"));
-		row1.appendChild(lHdrDocNo);
-		rows.appendChild(row1);
-		
-		// Baris 2: Nama Partner & Total
-		Row row2 = new Row();
-		row2.appendChild(new Label("Date:"));
-		row2.appendChild(lHdrDateDoc);
-		rows.appendChild(row2);
+    // Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
+    Tabpanel panelLines = new Tabpanel();
 
-		Row row3 = new Row();
-		row3.appendChild(new Label("BP Name:"));
-		row3.appendChild(lHdrBPName);
-		rows.appendChild(row3);
+    grpTxDetails = new Groupbox();
+    grpTxDetails.setCaption("Header Doc");
+    grpTxDetails.setOpen(true);
+    grpTxDetails.setHflex("1");
+    grpTxDetails.setVisible(true); 
+    grpTxDetails.setStyle("border: none; padding: 0;");
 
-		Row row4 = new Row();
-		row4.appendChild(new Label("Grand Total:"));
-		row4.appendChild(lHdrGrandTotal);
-		rows.appendChild(row4);
+    // --- Layout Grid untuk Header ---
+    Grid headerGrid = new Grid();
+    headerGrid.setStyle("border: none; margin-bottom: 10px;");
+    Columns columns = new Columns();
+    columns.appendChild(new Column());
+    columns.appendChild(new Column());
+    headerGrid.appendChild(columns);
 
-		headerGrid.appendChild(rows);
-		grpTxDetails.appendChild(headerGrid); // Masukkan grid ke dalam groupbox
-		// --------------------------------------------------
+    Rows rows = new Rows();
 
-		lstTxLines = new Listbox();
-		lstTxLines.setHflex("1");
-		lstTxLines.setSpan(true);
-		lstTxLines.setSclass("mobile-scrollable-list");
-		Listhead listHead = new Listhead();
+    // Baris 1: No Dokumen
+    Row row1 = new Row();
+    row1.appendChild(new Label("Doc No:"));
+    row1.appendChild(lHdrDocNo);
+    rows.appendChild(row1);
 
-		listHead.appendChild(createHeader("Description", "2")); // Kolom 1 (Lebih lebar)
-		listHead.appendChild(createHeader("Qty", "1"));         // Kolom 2
-		listHead.appendChild(createHeader("Total", "1"));       // Kolom 3
-		lstTxLines.appendChild(listHead);
+     // Baris 2: Tanggal
+     Row row2 = new Row();
+     row2.appendChild(new Label("Date:"));
+     row2.appendChild(lHdrDateDoc);
+     rows.appendChild(row2);
 
-		grpTxDetails.appendChild(lstTxLines);
-		panelLines.appendChild(grpTxDetails);
+      // Baris 3: Nama Partner
+      Row row3 = new Row();
+      row3.appendChild(new Label("BP Name:"));
+      row3.appendChild(lHdrBPName);
+      rows.appendChild(row3);
 
-		//Part 3.2: Tabpanel 2 - History
-		Tabpanel panelHistory = new Tabpanel();
-		tabpanels.appendChild(panelHistory);
+      // Baris 4: Grand Total
+      Row row4 = new Row();
+      row4.appendChild(new Label("Grand Total:"));
+      row4.appendChild(lHdrGrandTotal);
+      rows.appendChild(row4);
+
+      headerGrid.appendChild(rows);
+      grpTxDetails.appendChild(headerGrid); // Masukkan grid ke groupbox
+
+       // --- Layout Listbox untuk Lines ---
+       lstTxLines = new Listbox();
+       lstTxLines.setHflex("1");
+       lstTxLines.setSpan(true);
+       lstTxLines.setSclass("mobile-scrollable-list");
+
+       Listhead listHead = new Listhead();
+       listHead.appendChild(createHeader("Description", "2")); 
+       listHead.appendChild(createHeader("Qty", "1"));         
+       listHead.appendChild(createHeader("Total", "1"));       
+       lstTxLines.appendChild(listHead);
+
+       grpTxDetails.appendChild(lstTxLines); // Masukkan listbox ke groupbox
+       panelLines.appendChild(grpTxDetails); // Masukkan semua isi groupbox ke panelLines
+       // Part 3.3: Membuat Tabpanel 2 - History
+       Tabpanel panelHistory = new Tabpanel();
+       tabpanels.appendChild(panelLines);    // Masuk ke Tab "Detail Transaksi"
+       tabpanels.appendChild(panelHistory);  // Masuk ke Tab "Riwayat"
 
 		Vlayout historyLayout = new Vlayout();
 		historyLayout.setHflex("1");
