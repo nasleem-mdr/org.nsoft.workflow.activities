@@ -58,6 +58,7 @@ import org.compiere.model.MOrder;
 import org.compiere.model.MOrderLine;
 import org.compiere.model.MInvoice;
 import org.compiere.model.MInvoiceLine;
+import org.compiere.model.MBPartner;
 import org.zkoss.zul.West;
 import org.zkoss.zul.Listitem;
 import org.compiere.util.CLogger;
@@ -165,14 +166,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		buttonLayout.setStyle("margin-top: 20px; padding: 10px 0; justify-content: flex-end;");
 
 		// Tombol Approve (Hijau)
-		Button btnApprove = new Button(titleApprove);
+		Button btnApprove = new Button("Approve");
 		btnApprove.setHeight("45px");
 		btnApprove.setHflex("1");
 		btnApprove.setStyle("background-color: #2ecc71; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
 		btnApprove.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(true));
 
 		// Tombol Reject (Merah)
-		Button btnReject = new Button(titleReject);
+		Button btnReject = new Button("Reject");
 		btnReject.setHeight("45px");
 		btnReject.setHflex("1");
 		btnReject.setStyle("background-color: #e74c3c; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
@@ -245,7 +246,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		westPanel.setSize("320px");
 		westPanel.setSplittable(true);
 		westPanel.setCollapsible(true);
-		westPanel.setTitle(titleWestpanel);
+		westPanel.setTitle("Approval List");
 		
 		// The listbox is configured so that its items stack neatly.
 		listbox.setSclass("wf-approval-listbox");
@@ -300,28 +301,52 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fHelp.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; font-style: italic; color: #718096;");
 		nodeApprovalArea.appendChild(helpGroup);
 
-		// Part 3: Center Panel - Tab Layout(Detail Transaction and History)
-		Tabbox tabboxDetail = new Tabbox();
-		tabboxDetail.setHflex("1");
-		Tabs tabs = new Tabs();
-		tabboxDetail.appendChild(tabs);
-		Tab tabLines = new Tab(titleTablines);
-		Tab tabHistory = new Tab(lHistory);
-		tabs.appendChild(tabLines);
-		tabs.appendChild(tabHistory);
-		Tabpanels tabpanels = new Tabpanels();
-		tabboxDetail.appendChild(tabpanels);
-
-		//Part 3.1: Tabpanel 1 - Detail Transaction (Header, BP, Lines)
+				//Part 3.1: Tabpanel 1 - Detail Transaction (Header, BP, Lines)
 		Tabpanel panelLines = new Tabpanel();
 		tabpanels.appendChild(panelLines);
 
 		grpTxDetails = new Groupbox();
-		grpTxDetails.setCaption(titleHeaderlines);
+		grpTxDetails.setCaption("Header Doc");
 		grpTxDetails.setOpen(true);
 		grpTxDetails.setHflex("1");
 		grpTxDetails.setVisible(true); 
 		grpTxDetails.setStyle("border: none; padding: 0;");
+
+		// --- TAMBAHKAN LAYOUT UNTUK LABEL HEADER DI SINI ---
+		Grid headerGrid = new Grid();
+		headerGrid.setStyle("border: none; margin-bottom: 10px;");
+		Columns columns = new Columns();
+		columns.appendChild(new Column());
+		columns.appendChild(new Column());
+		headerGrid.appendChild(columns);
+
+		Rows rows = new Rows();
+		
+		// Baris 1: No Dokumen & Tanggal
+		Row row1 = new Row();
+		row1.appendChild(new Label("Doc No:"));
+		row1.appendChild(lHdrDocNo);
+		rows.appendChild(row1);
+		
+		// Baris 2: Nama Partner & Total
+		Row row2 = new Row();
+		row2.appendChild(new Label("Date:"));
+		row2.appendChild(lHdrDateDoc);
+		rows.appendChild(row2);
+
+		Row row3 = new Row();
+		row3.appendChild(new Label("BP Name:"));
+		row3.appendChild(lHdrBPName);
+		rows.appendChild(row3);
+
+		Row row4 = new Row();
+		row4.appendChild(new Label("Grand Total:"));
+		row4.appendChild(lHdrGrandTotal);
+		rows.appendChild(row4);
+
+		headerGrid.appendChild(rows);
+		grpTxDetails.appendChild(headerGrid); // Masukkan grid ke dalam groupbox
+		// --------------------------------------------------
 
 		lstTxLines = new Listbox();
 		lstTxLines.setHflex("1");
@@ -469,7 +494,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                 return;
             
 			lHdrDocNo.setValue(getFieldValue(headerPO, "getDocumentNo"));
-        	lHdrDateDoc.setValue(getFieldValue(headerPO, "getCreated"));
+        	//getCreated take from MWFActivity (can use for KPI)
+			Object rawDate = activity.getCreated(); 
+			lHdrDateDoc.setValue(formatDate(rawDate));
 	        lHdrBPName.setValue(getBPName(headerPO));
 			String grandTotal = getFieldValue(headerPO, "getGrandTotal", "getTotalLines");
 			if ("-".equals(grandTotal)) {
@@ -664,7 +691,31 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			return "-";
 		}
 	}
- 
+
+	private String formatDate(Object dateObj) {
+		if (dateObj == null) return "-";
+		try {
+			java.util.Date date;
+			if (dateObj instanceof java.sql.Timestamp)
+				date = new java.util.Date(((java.sql.Timestamp) dateObj).getTime());
+			else if (dateObj instanceof java.sql.Date)
+				date = new java.util.Date(((java.sql.Date) dateObj).getTime());
+			else
+				return dateObj.toString();
+
+			// Ambil locale dari Language iDempiere — mengikuti setup system/user
+			org.compiere.util.Language lang = Env.getLanguage(Env.getCtx());
+			java.util.Locale locale = lang.getLocale();
+
+			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+				"dd MMMM yyyy", locale
+			);
+			return sdf.format(date);
+
+		} catch (Exception e) {
+			return dateObj.toString();
+		}
+	}
 	private Listheader createHeader(String label, String ratio) {
         Listheader header = new Listheader(label);
         header.setHflex(ratio); 
