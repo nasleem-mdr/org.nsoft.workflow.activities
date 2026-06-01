@@ -87,7 +87,6 @@ import org.zkoss.zul.South;
 import org.zkoss.zul.Vlayout;
 import org.zkoss.zul.Groupbox;
 import java.lang.reflect.Method;
-import org.zkoss.zk.ui.Component;
 import org.zkoss.zul.Listhead;
 import org.zkoss.zul.Listheader;
 import org.zkoss.zul.Tabbox;
