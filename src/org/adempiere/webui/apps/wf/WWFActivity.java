@@ -165,14 +165,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		buttonLayout.setStyle("margin-top: 20px; padding: 10px 0; justify-content: flex-end;");
 
 		// Tombol Approve (Hijau)
-		btnApprove = new Button(titleApprove);
+		Button btnApprove = new Button(titleApprove);
 		btnApprove.setHeight("45px");
 		btnApprove.setHflex("1");
 		btnApprove.setStyle("background-color: #2ecc71; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
 		btnApprove.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(true));
 
 		// Tombol Reject (Merah)
-		btnReject = new org.zkoss.zul.Button(titleReject);
+		Button btnReject = new Button(titleReject);
 		btnReject.setHeight("45px");
 		btnReject.setHflex("1");
 		btnReject.setStyle("background-color: #e74c3c; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
@@ -554,7 +554,117 @@ public class WWFActivity extends ADForm implements EventListener<Event>
             log.log(Level.SEVERE, "Failed to process", e);
         }
     }
-
+	/**
+	 * Coba beberapa method getter, return nilai pertama yang tidak null/kosong.
+	 * Fallback akhir: "-"
+	 */
+	private String getFieldValue(Object obj, String... methodNames) {
+		for (String methodName : methodNames) {
+			try {
+				Method m   = obj.getClass().getMethod(methodName);
+				Object val = m.invoke(obj);
+				if (val != null && !val.toString().trim().isEmpty())
+					return val.toString();
+			} catch (Exception ignored) {}
+		}
+		return "-";
+	}
+	 
+	/**
+	 * Ambil nama BP: getC_BPartner().getName()
+	 * Fallback: getC_BPartner_ID lalu query MBPartner langsung
+	 */
+	private String getBPName(PO headerPO) {
+		// Coba via object relasi
+		try {
+			Method getBP = headerPO.getClass().getMethod("getC_BPartner");
+			Object bp    = getBP.invoke(headerPO);
+			if (bp != null) {
+				Method getName = bp.getClass().getMethod("getName");
+				Object name    = getName.invoke(bp);
+				if (name != null && !name.toString().trim().isEmpty())
+					return name.toString();
+			}
+		} catch (Exception ignored) {}
+	 
+		// Fallback: ambil C_BPartner_ID lalu query tabel langsung
+		try {
+			Method getIdMethod = headerPO.getClass().getMethod("getC_BPartner_ID");
+			Object bpId        = getIdMethod.invoke(headerPO);
+			if (bpId != null && (Integer) bpId > 0) {
+				org.compiere.model.MBPartner bp =
+					new org.compiere.model.MBPartner(Env.getCtx(), (Integer) bpId, null);
+				if (bp.getName() != null) return bp.getName();
+			}
+		} catch (Exception ignored) {}
+	 
+		return "-";
+	}
+	 
+	/**
+	 * Ambil nama produk dari line: M_Product.getName() → getDescription() → "Item"
+	 */
+	private String getProductName(Object line) {
+		try {
+			Method getProduct = line.getClass().getMethod("getM_Product");
+			Object product    = getProduct.invoke(line);
+			if (product != null) {
+				Method getName = product.getClass().getMethod("getName");
+				Object name    = getName.invoke(product);
+				if (name != null && !name.toString().trim().isEmpty())
+					return name.toString();
+			}
+		} catch (Exception ignored) {}
+	 
+		String desc = getFieldValue(line, "getDescription", "getName");
+		return "-".equals(desc) ? "Item" : desc;
+	}
+	 
+	/**
+	 * Kalkulasi total manual dari lines jika getGrandTotal/getTotalLines tidak tersedia.
+	 * Menjumlahkan getLineNetAmt tiap line, fallback ke getPriceActual * Qty.
+	 */
+	private String calcTotalFromLines(PO headerPO) {
+		try {
+			Method getLinesMethod = headerPO.getClass().getMethod("getLines");
+			Object[] lines        = (Object[]) getLinesMethod.invoke(headerPO);
+	 
+			if (lines == null || lines.length == 0)
+				return "-";
+	 
+			java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+			for (Object line : lines) {
+				// Coba getLineNetAmt dulu
+				try {
+					Method m   = line.getClass().getMethod("getLineNetAmt");
+					Object val = m.invoke(line);
+					if (val instanceof java.math.BigDecimal)
+						total = total.add((java.math.BigDecimal) val);
+					continue;
+				} catch (Exception ignored) {}
+	 
+				// Fallback: PriceActual * Qty
+				try {
+					Method mPrice = line.getClass().getMethod("getPriceActual");
+					Method mQty   = line.getClass().getMethod("getQtyOrdered");
+					Object price  = mPrice.invoke(line);
+					Object qty    = mQty.invoke(line);
+					if (price instanceof java.math.BigDecimal && qty instanceof java.math.BigDecimal)
+						total = total.add(
+							((java.math.BigDecimal) price)
+								.multiply((java.math.BigDecimal) qty));
+				} catch (Exception ignored) {}
+			}
+	 
+			// Format dengan 2 desimal
+			return total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
+	 
+		} catch (Exception e) {
+			log.warning("calcTotalFromLines gagal: " + e.getMessage());
+			return "-";
+		}
+	}
+ 
 	private Listheader createHeader(String label, String ratio) {
         Listheader header = new Listheader(label);
         header.setHflex(ratio); 
@@ -764,6 +874,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		{
 			return;
 		}
+
+		renderTransactionDetails(m_activity);
+
 		//	Display Activity
 		fNode.setText (m_activity.getNodeName());
 		fDescription.setValue (m_activity.getNodeDescription());
