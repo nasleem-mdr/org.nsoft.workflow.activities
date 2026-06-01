@@ -54,11 +54,6 @@ import org.compiere.model.Query;
 import org.compiere.model.SystemIDs;
 import org.compiere.model.MTable;
 import org.compiere.model.PO;
-import org.compiere.model.MOrder;
-import org.compiere.model.MOrderLine;
-import org.compiere.model.MInvoice;
-import org.compiere.model.MInvoiceLine;
-import org.compiere.model.MBPartner;
 import org.zkoss.zul.West;
 import org.zkoss.zul.Listitem;
 import org.compiere.util.CLogger;
@@ -119,7 +114,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	/**	Logger			*/
 	private static final CLogger log = CLogger.getCLogger(WWFActivity.class);
 
-	//
+	// Components
 	private Label lNode = new Label(Msg.translate(Env.getCtx(), "AD_WF_Node_ID"));
 	private Textbox fNode = new Textbox();
 	private Label lDesctiption = new Label(Msg.translate(Env.getCtx(), "Description"));
@@ -127,7 +122,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Label lHelp = new Label(Msg.translate(Env.getCtx(), "Help"));
 	private Textbox fHelp = new Textbox();
 	private Label lHistory = new Label(Msg.translate(Env.getCtx(), "History"));
-	private Html fHistory = new Html();
+	private Html fHistory = new Html(); // Memperbaiki duplikasi fHistory Textbox yang salah sebelumnya
 	private Label lAnswer = new Label(Msg.getMsg(Env.getCtx(), "Answer"));
 	private Textbox fAnswerText = new Textbox();
 	private Listbox fAnswerList = new Listbox();
@@ -146,7 +141,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Groupbox grpTxDetails = new Groupbox();
 	private Listbox lstTxLines = new Listbox();
 	private	Label titleWestpanel = new Label(Msg.getMsg(Env.getCtx(),"List Approval"));
-    private Label titleNode = new Label(Msg.getMsg(Env.getCtx(), "Approval Node"));
+	private Label titleNode = new Label(Msg.getMsg(Env.getCtx(), "Approval Node"));
 	private	Label titleTablines = new Label(Msg.getMsg(Env.getCtx(),"Approval Detail"));
 	private	Label titleHeaderlines = new Label(Msg.getMsg(Env.getCtx(),"Header & Lines"));
 	private	Label titleAction = new Label(Msg.getMsg(Env.getCtx(),"Approval Action"));
@@ -166,14 +161,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		buttonLayout.setSpacing("15px");
 		buttonLayout.setStyle("margin-top: 20px; padding: 10px 0; justify-content: flex-end;");
 
-		// Tombol Approve (Hijau)
+		// Tombol Approve
 		Button btnApprove = new Button("Approve");
 		btnApprove.setHeight("45px");
 		btnApprove.setHflex("1");
 		btnApprove.setStyle("background-color: #2ecc71; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
 		btnApprove.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(true));
 
-		// Tombol Reject (Merah)
+		// Tombol Reject
 		Button btnReject = new Button("Reject");
 		btnReject.setHeight("45px");
 		btnReject.setHflex("1");
@@ -186,22 +181,15 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		return buttonLayout;
 	}
 
-	/**
-	 * default constructor
-	 */
 	public WWFActivity()
 	{
 		super();
 		LayoutUtils.addSclass("workflow-activity-form", this);
 	}
 
-	/**
-	 * Load activities and layout form
-	 */
     protected void initForm()
     {
         loadActivities();
-
         fAnswerList.setMold("select");
 
 		if (ThemeManager.isUseFontIconForImage()) {
@@ -226,20 +214,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         display(-1);
     }
 
-    /**
-     * set tooltip text of btn
-     * @param btn
-     * @param key AD_Message key
-     */
 	private void setTooltipText(Button btn, String key) {
 		String text = Util.cleanAmp(Msg.translate(Env.getCtx(), key));
 		if (!Util.isEmpty(text, true))
 			btn.setTooltiptext(text);
 	}
 
-	/**
-	 * Layout form
-	 */
 	private void init()
 	{
 		// Part 1: West Panel (Approval List)
@@ -249,24 +229,21 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		westPanel.setCollapsible(true);
 		westPanel.setTitle("Approval List");
 		
-		// The listbox is configured so that its items stack neatly.
 		listbox.setSclass("wf-approval-listbox");
 		ZKUpdateUtil.setVflex(listbox, "1");
 		ZKUpdateUtil.setHflex(listbox, "1");
 		westPanel.appendChild(listbox);
 		listbox.addEventListener(Events.ON_SELECT, this);
 
-		// Part 2: Center Panel - Node Aproval
+		// Part 2: Center Panel - Node Approval
 		Vlayout nodeApprovalArea = new Vlayout();
 		nodeApprovalArea.setHflex("1");
 		nodeApprovalArea.setSpacing("8px");
 		nodeApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px;");
 
-		//Part 2.1: Title Section
 		titleNode.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block; margin-bottom: 5px;");
 		nodeApprovalArea.appendChild(titleNode);
 
-		//Part 2.2: Node Field Group
 		Vlayout nodeGroup = new Vlayout();
 		nodeGroup.setSpacing("3px");
 		lNode.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -277,7 +254,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fNode.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px;");
 		nodeApprovalArea.appendChild(nodeGroup);
 
-		//Part 2.3: Description Field
 		Vlayout descGroup = new Vlayout();
 		descGroup.setSpacing("3px");
 		lDesctiption.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -289,7 +265,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fDescription.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; min-height: 40px;");
 		nodeApprovalArea.appendChild(descGroup);
 
-		//Part 2.4: Help Field 
 		Vlayout helpGroup = new Vlayout();
 		helpGroup.setSpacing("3px");
 		lHelp.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -302,81 +277,73 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fHelp.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; font-style: italic; color: #718096;");
 		nodeApprovalArea.appendChild(helpGroup);
 
-    // Part 3.1: Struktur Tabbox Utama
-    Tabs tabs = new Tabs();
-    tabs.appendChild(new Tab("Detail Transaksi")); // Tab indeks 0
-    tabs.appendChild(new Tab("Riwayat"));          // Tab indeks 1
-    tabboxDetail.appendChild(tabs);       
+		// Part 3.1: Struktur Tabbox Utama
+		Tabs tabs = new Tabs();
+		tabs.appendChild(new Tab("Detail Transaksi")); 
+		tabs.appendChild(new Tab("Riwayat"));          
+		tabboxDetail.appendChild(tabs);       
+		tabboxDetail.appendChild(tabpanels);  
 
-    // Pastikan variabel tabpanels sudah di-instansiasi sebelum di-append
-    // tabpanels = new Tabpanels(); 
-    tabboxDetail.appendChild(tabpanels);  
+		// Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
+		Tabpanel panelLines = new Tabpanel();
 
-    // Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
-    Tabpanel panelLines = new Tabpanel();
+		grpTxDetails = new Groupbox();
+		grpTxDetails.setCaption("Header Doc");
+		grpTxDetails.setOpen(true);
+		grpTxDetails.setHflex("1");
+		grpTxDetails.setVisible(true); 
+		grpTxDetails.setStyle("border: none; padding: 0;");
 
-    grpTxDetails = new Groupbox();
-    grpTxDetails.setCaption("Header Doc");
-    grpTxDetails.setOpen(true);
-    grpTxDetails.setHflex("1");
-    grpTxDetails.setVisible(true); 
-    grpTxDetails.setStyle("border: none; padding: 0;");
+		Grid headerGrid = new Grid();
+		headerGrid.setStyle("border: none; margin-bottom: 10px;");
+		Columns columns = new Columns();
+		columns.appendChild(new Column());
+		columns.appendChild(new Column());
+		headerGrid.appendChild(columns);
 
-    // --- Layout Grid untuk Header ---
-    Grid headerGrid = new Grid();
-    headerGrid.setStyle("border: none; margin-bottom: 10px;");
-    Columns columns = new Columns();
-    columns.appendChild(new Column());
-    columns.appendChild(new Column());
-    headerGrid.appendChild(columns);
+		Rows rows = new Rows();
 
-    Rows rows = new Rows();
+		Row row1 = new Row();
+		row1.appendChild(new Label("Doc No:"));
+		row1.appendChild(lHdrDocNo);
+		rows.appendChild(row1);
 
-    // Baris 1: No Dokumen
-    Row row1 = new Row();
-    row1.appendChild(new Label("Doc No:"));
-    row1.appendChild(lHdrDocNo);
-    rows.appendChild(row1);
+		Row row2 = new Row();
+		row2.appendChild(new Label("Date:"));
+		row2.appendChild(lHdrDateDoc);
+		rows.appendChild(row2);
 
-     // Baris 2: Tanggal
-     Row row2 = new Row();
-     row2.appendChild(new Label("Date:"));
-     row2.appendChild(lHdrDateDoc);
-     rows.appendChild(row2);
+		Row row3 = new Row();
+		row3.appendChild(new Label("BP Name:"));
+		row3.appendChild(lHdrBPName);
+		rows.appendChild(row3);
 
-      // Baris 3: Nama Partner
-      Row row3 = new Row();
-      row3.appendChild(new Label("BP Name:"));
-      row3.appendChild(lHdrBPName);
-      rows.appendChild(row3);
+		Row row4 = new Row();
+		row4.appendChild(new Label("Grand Total:"));
+		row4.appendChild(lHdrGrandTotal);
+		rows.appendChild(row4);
 
-      // Baris 4: Grand Total
-      Row row4 = new Row();
-      row4.appendChild(new Label("Grand Total:"));
-      row4.appendChild(lHdrGrandTotal);
-      rows.appendChild(row4);
+		headerGrid.appendChild(rows);
+		grpTxDetails.appendChild(headerGrid); 
 
-      headerGrid.appendChild(rows);
-      grpTxDetails.appendChild(headerGrid); // Masukkan grid ke groupbox
+		lstTxLines = new Listbox();
+		lstTxLines.setHflex("1");
+		lstTxLines.setSpan(true);
+		lstTxLines.setSclass("mobile-scrollable-list");
 
-       // --- Layout Listbox untuk Lines ---
-       lstTxLines = new Listbox();
-       lstTxLines.setHflex("1");
-       lstTxLines.setSpan(true);
-       lstTxLines.setSclass("mobile-scrollable-list");
+		Listhead listHead = new Listhead();
+		listHead.appendChild(createHeader("Description", "2")); 
+		listHead.appendChild(createHeader("Qty", "1"));         
+		listHead.appendChild(createHeader("Total", "1"));       
+		lstTxLines.appendChild(listHead);
 
-       Listhead listHead = new Listhead();
-       listHead.appendChild(createHeader("Description", "2")); 
-       listHead.appendChild(createHeader("Qty", "1"));         
-       listHead.appendChild(createHeader("Total", "1"));       
-       lstTxLines.appendChild(listHead);
-
-       grpTxDetails.appendChild(lstTxLines); // Masukkan listbox ke groupbox
-       panelLines.appendChild(grpTxDetails); // Masukkan semua isi groupbox ke panelLines
-       // Part 3.3: Membuat Tabpanel 2 - History
-       Tabpanel panelHistory = new Tabpanel();
-       tabpanels.appendChild(panelLines);    // Masuk ke Tab "Detail Transaksi"
-       tabpanels.appendChild(panelHistory);  // Masuk ke Tab "Riwayat"
+		grpTxDetails.appendChild(lstTxLines); 
+		panelLines.appendChild(grpTxDetails); 
+		
+		// Part 3.3: Membuat Tabpanel 2 - History
+		Tabpanel panelHistory = new Tabpanel();
+		tabpanels.appendChild(panelLines);    
+		tabpanels.appendChild(panelHistory);  
 
 		Vlayout historyLayout = new Vlayout();
 		historyLayout.setHflex("1");
@@ -388,17 +355,15 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fHistory.setStyle("border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px;");
 		panelHistory.appendChild(historyLayout);
 
-		//Part 4: Center Panel - Approval Action(Footer)
+		// Part 4: Center Panel - Approval Action (Footer)
 		Vlayout footerApprovalArea = new Vlayout();
 		footerApprovalArea.setHflex("1");
 		footerApprovalArea.setSpacing("12px");
 		footerApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 10px;");
 
-		//Part 4.1: Footer Title Section
 		titleAction.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block;");
 		footerApprovalArea.appendChild(titleAction);
 
-		//Part 4.2: txtMessage Group
 		Vlayout msgGroup = new Vlayout();
 		msgGroup.setSpacing("5px");
 		lTextMsg.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -410,7 +375,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fTextMsg.setStyle("border: 1px solid #cbd5e0; padding: 8px; border-radius: 4px; font-family: sans-serif;");
 		footerApprovalArea.appendChild(msgGroup);
 
-		//Part 4.3: Answer Row
 		FlexHlayout answerRow = new FlexHlayout();
 		answerRow.setHflex("1");
 		answerRow.setValign("middle");
@@ -425,7 +389,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fAnswerButton.addEventListener(Events.ON_CLICK, this);
 		bZoom.addEventListener(Events.ON_CLICK, this);
 
-		//Part 4.4: Forward Row
 		Vlayout forwardSection = new Vlayout();
 		forwardSection.setSpacing("5px");
 		lForward.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
@@ -443,28 +406,24 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		
 		footerApprovalArea.appendChild(forwardSection);
 
-		//Part 4.5: Approve and reject button
 		FlexHlayout mainActionButtons = new FlexHlayout();
 		mainActionButtons.setHflex("1");
 		mainActionButtons.setSpacing("15px");
 		
-		//Use function createModernActionButtons()
 		FlexHlayout customButtons = createModernActionButtons();
 		mainActionButtons.appendChild(customButtons);
 		ZKUpdateUtil.setHflex(customButtons, "1");
 		
 		footerApprovalArea.appendChild(mainActionButtons);
 
-		//Part 5: Main layout - mainChatlayout
+		// Part 5: Main layout
 		Borderlayout mainChatLayout = new Borderlayout();
 		ZKUpdateUtil.setWidth(mainChatLayout, "100%");
 		ZKUpdateUtil.setHeight(mainChatLayout, "100%");
 		mainChatLayout.setStyle("background-color: #f7f9fa; position: relative;");
 
-		//Part 5.1: Put westPanel (List Approval)
 		mainChatLayout.appendChild(westPanel);
 
-		//Part 5.2: Put centerPanel(Detail Area: Node, Detail and Action)
 		Center centerPanel = new Center();
 		centerPanel.setStyle("background-color: transparent; overflow: auto;");
 
@@ -473,15 +432,13 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		chatAreaLayout.setSpacing("15px");
 		chatAreaLayout.setStyle("padding: 15px;");
 
-		//Part 5.3: Sort by Node, Detail Approval and Approval Action
-		chatAreaLayout.appendChild(nodeApprovalArea);   // 1. Node Approval Section
-		chatAreaLayout.appendChild(tabboxDetail);       // 2. Tab Details & History
-		chatAreaLayout.appendChild(footerApprovalArea);  // 3. Footer - Approval action
+		chatAreaLayout.appendChild(nodeApprovalArea);   
+		chatAreaLayout.appendChild(tabboxDetail);       
+		chatAreaLayout.appendChild(footerApprovalArea);  
 
 		centerPanel.appendChild(chatAreaLayout);
 		mainChatLayout.appendChild(centerPanel);
 
-		// Status Bar
 		South south = new South();
 		south.appendChild(statusBar);
 		south.setStyle("background-color: transparent;");
@@ -492,8 +449,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	}
 
 	private void renderTransactionDetails(MWFActivity activity) {
-		// 1. Reset state view awal
-		lstTxLines.getItems().clear(); // Cukup hapus item-nya saja, jangan clear total agar Listhead di init() tidak hilang
+		// Bersihkan baris lama tapi biarkan komponen Listhead tetap terjaga
+		if (lstTxLines.getItemCount() > 0) {
+			List<Listitem> items = new ArrayList<>(lstTxLines.getItems());
+			for (Listitem item : items) {
+				lstTxLines.removeChild(item);
+			}
+		}
+		
 		grpTxDetails.setVisible(true);
 		lHdrDocNo.setValue("-");
 		lHdrDateDoc.setValue("-");
@@ -509,10 +472,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			
 			if (headerPO == null) return;
 
-			// Tampilkan container groupbox karena dokumen ditemukan
 			grpTxDetails.setVisible(true);
 
-			// Set Nilai Header Component
 			lHdrDocNo.setValue(getFieldValue(headerPO, "getDocumentNo"));
 			Object rawDate = activity.getCreated();
 			lHdrDateDoc.setValue(formatDate(rawDate));
@@ -524,30 +485,20 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			}
 			lHdrGrandTotal.setValue(grandTotal);
 
-			// 2. Ambil data Lines menggunakan Java Reflection
 			Method getLinesMethod = null;
 			try {
 				getLinesMethod = headerPO.getClass().getMethod("getLines");
 			} catch (NoSuchMethodException e) {
-				// Jika dokumen tidak punya baris/lines (misal dokumen cetak cetak berseri tertentu), 
-				// biarkan header tetap tampil namun jangan teruskan ke loop lines.
 				log.warning("Dokumen " + headerPO.get_TableName() + " tidak memiliki metode getLines().");
 				return; 
 			}
 
 			Object[] lines = (Object[]) getLinesMethod.invoke(headerPO);
 			if (lines != null && lines.length > 0) {
-				
-				// Catatan: Pastikan komponen `Listhead` sudah Anda tempel sekali saja di metode init() 
-				// Contoh di init(): lstTxLines.appendChild(listHead);
-
 				for (Object line : lines) {
 					Listitem item = new Listitem();
-					
-					// Ambil Nama Produk / Deskripsi
 					String itemDetail = getProductName(line);
 					
-					// Ambil Quantity Dinamis
 					String qty = "0";
 					String[] qtyMethodNames = {"getQtyInvoiced", "getQtyOrdered", "getQtyEntered", "getQtyField", "getQtyDelivered", "getQty"};
 					for (String methodName : qtyMethodNames) {
@@ -561,7 +512,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 						} catch (Exception ignored) {}
 					}
 
-					// Ambil Nilai Total Line Dinamis
 					String lineNetAmt = "0";
 					try {
 						Method getLineNetAmt = line.getClass().getMethod("getLineNetAmt");
@@ -575,7 +525,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 						} catch (Exception ignored) {}
 					}
 
-					// Tambah data ke dalam baris tabel ZK
 					item.appendChild(new Listcell(itemDetail));
 					item.appendChild(new Listcell(qty));
 					item.appendChild(new Listcell(lineNetAmt));
@@ -587,10 +536,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		}
 	}
 
-	/**
-	 * Coba beberapa method getter, return nilai pertama yang tidak null/kosong.
-	 * Fallback akhir: "-"
-	 */
 	private String getFieldValue(Object obj, String... methodNames) {
 		for (String methodName : methodNames) {
 			try {
@@ -602,13 +547,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		}
 		return "-";
 	}
-	 
-	/**
-	 * Ambil nama BP: getC_BPartner().getName()
-	 * Fallback: getC_BPartner_ID lalu query MBPartner langsung
-	 */
+
 	private String getBPName(PO headerPO) {
-		// Coba via object relasi
 		try {
 			Method getBP = headerPO.getClass().getMethod("getC_BPartner");
 			Object bp    = getBP.invoke(headerPO);
@@ -619,24 +559,19 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 					return name.toString();
 			}
 		} catch (Exception ignored) {}
-	 
-		// Fallback: ambil C_BPartner_ID lalu query tabel langsung
+
 		try {
 			Method getIdMethod = headerPO.getClass().getMethod("getC_BPartner_ID");
 			Object bpId        = getIdMethod.invoke(headerPO);
 			if (bpId != null && (Integer) bpId > 0) {
-				org.compiere.model.MBPartner bp =
-					new org.compiere.model.MBPartner(Env.getCtx(), (Integer) bpId, null);
+				org.compiere.model.MBPartner bp = new org.compiere.model.MBPartner(Env.getCtx(), (Integer) bpId, null);
 				if (bp.getName() != null) return bp.getName();
 			}
 		} catch (Exception ignored) {}
-	 
+
 		return "-";
 	}
-	 
-	/**
-	 * Ambil nama produk dari line: M_Product.getName() → getDescription() → "Item"
-	 */
+
 	private String getProductName(Object line) {
 		try {
 			Method getProduct = line.getClass().getMethod("getM_Product");
@@ -648,50 +583,41 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 					return name.toString();
 			}
 		} catch (Exception ignored) {}
-	 
+
 		String desc = getFieldValue(line, "getDescription", "getName");
 		return "-".equals(desc) ? "Item" : desc;
 	}
-	 
-	/**
-	 * Kalkulasi total manual dari lines jika getGrandTotal/getTotalLines tidak tersedia.
-	 * Menjumlahkan getLineNetAmt tiap line, fallback ke getPriceActual * Qty.
-	 */
+
 	private String calcTotalFromLines(PO headerPO) {
 		try {
 			Method getLinesMethod = headerPO.getClass().getMethod("getLines");
 			Object[] lines        = (Object[]) getLinesMethod.invoke(headerPO);
-	 
+
 			if (lines == null || lines.length == 0)
 				return "-";
-	 
+
 			java.math.BigDecimal total = java.math.BigDecimal.ZERO;
 			for (Object line : lines) {
-				// Coba getLineNetAmt dulu
 				try {
 					Method m   = line.getClass().getMethod("getLineNetAmt");
 					Object val = m.invoke(line);
-					if (val instanceof java.math.BigDecimal)
+					if (val instanceof java.math.BigDecimal) {
 						total = total.add((java.math.BigDecimal) val);
-					continue;
+						continue;
+					}
 				} catch (Exception ignored) {}
-	 
-				// Fallback: PriceActual * Qty
+
 				try {
 					Method mPrice = line.getClass().getMethod("getPriceActual");
 					Method mQty   = line.getClass().getMethod("getQtyOrdered");
 					Object price  = mPrice.invoke(line);
 					Object qty    = mQty.invoke(line);
 					if (price instanceof java.math.BigDecimal && qty instanceof java.math.BigDecimal)
-						total = total.add(
-							((java.math.BigDecimal) price)
-								.multiply((java.math.BigDecimal) qty));
+						total = total.add(((java.math.BigDecimal) price).multiply((java.math.BigDecimal) qty));
 				} catch (Exception ignored) {}
 			}
-	 
-			// Format dengan 2 desimal
+
 			return total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
-	 
 		} catch (Exception e) {
 			log.warning("calcTotalFromLines gagal: " + e.getMessage());
 			return "-";
@@ -709,19 +635,16 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			else
 				return dateObj.toString();
 
-			// Ambil locale dari Language iDempiere — mengikuti setup system/user
 			org.compiere.util.Language lang = Env.getLanguage(Env.getCtx());
 			java.util.Locale locale = lang.getLocale();
 
-			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
-				"dd MMMM yyyy", locale
-			);
+			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd MMMM yyyy", locale);
 			return sdf.format(date);
-
 		} catch (Exception e) {
 			return dateObj.toString();
 		}
 	}
+
 	private Listheader createHeader(String label, String ratio) {
         Listheader header = new Listheader(label);
         header.setHflex(ratio); 
@@ -732,22 +655,30 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		if (m_activity == null) return;
 
 		try {
-			// 1. Deteksi komponen input jawaban bawaan iDempiere
 			if (fAnswerList.isVisible() && fAnswerList.getItemCount() > 0) {
-				// Jika tipe datanya Yes/No (1 untuk Yes/Approve, 0 untuk No/Reject)
-				if (isApproved) {
-					fAnswerList.setSelectedIndex(0); // Biasanya indeks 0 adalah 'Yes' / 'Approve'
-				} else {
-					fAnswerList.setSelectedIndex(1); // Biasanya indeks 1 adalah 'No' / 'Reject'
+				// Ambil value dinamis "Y"/"N" alih-alih mengandalkan Indexing kaku (0 atau 1)
+				String targetValue = isApproved ? "Y" : "N";
+				boolean itemFound = false;
+				
+				for (int i = 0; i < fAnswerList.getItemCount(); i++) {
+					org.zkoss.zul.Listitem li = fAnswerList.getItemAtIndex(i);
+					if (targetValue.equalsIgnoreCase(li.getValue())) {
+						fAnswerList.setSelectedIndex(i);
+						itemFound = true;
+						break;
+					}
 				}
+				
+				// Fallback safety net jika value referensi kustom di-setting bukan Y/N
+				if (!itemFound) {
+					fAnswerList.setSelectedIndex(isApproved ? 0 : 1);
+				}
+				
 			} else if (fAnswerText.isVisible()) {
-				// Jika tipenya isian teks bebas
 				fAnswerText.setText(isApproved ? "Approved" : "Rejected");
 			}
 
-			// 2. Kirim catatan evaluasi dari kolom pesan (fTextMsg) jika diisi user
-			
-			// 3. Picu secara keras Event klik tombol OK bawaan iDempiere
+			// Picu logic aseli bawaan iDempiere lewat bOK Click event
 			org.zkoss.zk.ui.event.Event clickEvent = new org.zkoss.zk.ui.event.Event(Events.ON_CLICK, bOK);
 			org.zkoss.zk.ui.event.Events.sendEvent(bOK, clickEvent);
 			
@@ -794,10 +725,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         }
 	}
 
-	/**
-	 * Get active activities count
-	 * @return pending activities count
-	 */
 	public int getActivitiesCount()
 	{
 		int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
@@ -809,10 +736,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		return count;
 	}
 
-	/**
-	 * 	Load Activities
-	 * 	@return number of activities loaded
-	 */
 	public int loadActivities()
 	{
 		long start = System.currentTimeMillis();
@@ -846,14 +769,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		}
 		m_activities = new MWFActivity[list.size ()];
 		list.toArray (m_activities);
-		//
-		if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length
-			+ "(" + (System.currentTimeMillis()-start) + "ms)");
+		
+		if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis()-start) + "ms)");
 		m_index = 0;
 
-		String[] columns = new String[]{Msg.translate(Env.getCtx(), "Priority"),
-				Msg.translate(Env.getCtx(), "AD_WF_Node_ID"),
-				Msg.translate(Env.getCtx(), "Summary")};
+		String[] columns = new String[]{Msg.translate(Env.getCtx(), "Priority"), Msg.translate(Env.getCtx(), "AD_WF_Node_ID"), Msg.translate(Env.getCtx(), "Summary")};
 
 		WListItemRenderer renderer = new WListItemRenderer(Arrays.asList(columns));
 		ListHeader header = new ListHeader();
@@ -873,13 +793,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		listbox.repaint();
 
 		return m_activities.length;
-	}	//	loadActivities
+	}	
 
-	/**
-	 * 	Reset form and return activity at selIndex
-	 *	@param selIndex select index
-	 *	@return selected activity
-	 */
 	private MWFActivity resetDisplay(int selIndex)
 	{
 		fAnswerText.setVisible(false);
@@ -895,7 +810,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		bOK.setEnabled(selIndex >= 0);
 		fForward.setValue(null);
 		fForward.setReadWrite(selIndex >= 0);
-		//
+		
 		statusBar.setStatusDB(String.valueOf(selIndex+1) + "/" + m_activities.length);
 		m_activity = null;
 		m_column = null;
@@ -904,7 +819,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			if (selIndex >= 0 && selIndex < m_activities.length)
 				m_activity = m_activities[selIndex];
 		}
-		//	Nothing to show
+		
 		if (m_activity == null)
 		{
 			fNode.setText ("");
@@ -915,18 +830,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			statusBar.setStatusLine(Msg.getMsg(Env.getCtx(), "WFNoActivities"));
 		}
 		return m_activity;
-	}	//	resetDisplay
+	}	
 
-	/**
-	 * Display activity at index
-	 * @param index
-	 */
 	public void display (int index)
 	{
 		if (log.isLoggable(Level.FINE)) log.fine("Index=" + index);
-		//
 		m_activity = resetDisplay(index);
-		//	Nothing to show
 		if (m_activity == null)
 		{
 			return;
@@ -934,14 +843,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 		renderTransactionDetails(m_activity);
 
-		//	Display Activity
 		fNode.setText (m_activity.getNodeName());
 		fDescription.setValue (m_activity.getNodeDescription());
 		fHelp.setValue (m_activity.getNodeHelp());
-		//
 		fHistory.setContent (HISTORY_DIV_START_TAG+m_activity.getHistoryHTML()+"</div>");
 
-		//	User Actions
 		MWFNode node = m_activity.getNode();
 		if (MWFNode.ACTION_UserChoice.equals(node.getAction()))
 		{
@@ -953,7 +859,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 				int dt = m_column.getAD_Reference_ID();
 				if (dt == DisplayType.YesNo)
 				{
-					ValueNamePair[] values = MRefList.getList(Env.getCtx(), 319, false);		//	_YesNo
+					ValueNamePair[] values = MRefList.getList(Env.getCtx(), 319, false);		
 					for(int i = 0; i < values.length; i++)
 					{
 						fAnswerList.appendItem(values[i].getName(), values[i].getValue());
@@ -969,14 +875,13 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 					}
 					fAnswerList.setVisible(true);
 				}
-				else	//	other display types come here
+				else	
 				{
 					fAnswerText.setText ("");
 					fAnswerText.setVisible(true);
 				}
 			}
 		}
-		//	--
 		else if (MWFNode.ACTION_UserWindow.equals(node.getAction())
 			|| MWFNode.ACTION_UserForm.equals(node.getAction())
 			|| MWFNode.ACTION_UserInfo.equals(node.getAction()))
@@ -990,41 +895,33 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 		statusBar.setStatusDB((m_index+1) + "/" + m_activities.length);
 		statusBar.setStatusLine(Msg.getMsg(Env.getCtx(), "WFActivities"));
-	}	//	display
+	}	
 
-
-	/**
-	 * Zoom to workflow activity window
-	 */
 	private void cmd_zoom()
 	{
 		if (log.isLoggable(Level.CONFIG)) log.config("Activity=" + m_activity);
 		if (m_activity == null)
 			return;
 		AEnv.zoom(m_activity.getAD_Table_ID(), m_activity.getRecord_ID());
-	}	//	cmd_zoom
+	}	
 
-	/**
-	 * 	Action Button
-	 */
 	private void cmd_button()
 	{
 		if (log.isLoggable(Level.CONFIG)) log.config("Activity=" + m_activity);
 		if (m_activity == null)
 			return;
-		//
+		
 		MWFNode node = m_activity.getNode();
 		if (MWFNode.ACTION_UserWindow.equals(node.getAction()))
 		{
-			int AD_Window_ID = node.getAD_Window_ID();		// Explicit Window
+			int AD_Window_ID = node.getAD_Window_ID();		
 			String ColumnName = m_activity.getPO().get_TableName() + "_ID";
 			int Record_ID = m_activity.getRecord_ID();
 			MQuery query = MQuery.getEqualQuery(ColumnName, Record_ID);
 			boolean IsSOTrx = m_activity.isSOTrx();
-			//
+			
 			if (log.isLoggable(Level.INFO))
-				log.info("Zoom to AD_Window_ID=" + AD_Window_ID
-					+ " - " + query + " (IsSOTrx=" + IsSOTrx + ")");
+				log.info("Zoom to AD_Window_ID=" + AD_Window_ID + " - " + query + " (IsSOTrx=" + IsSOTrx + ")");
 
 			AEnv.zoom(AD_Window_ID, query);
 		}
@@ -1040,12 +937,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		}
 		else
 			log.log(Level.SEVERE, "No User Action:" + node.getAction());
-	}	//	cmd_button
+	}	
 
-
-	/**
-	 * 	Save
-	 */
 	public void onOK()
 	{
 		if (log.isLoggable(Level.CONFIG)) log.config("Activity=" + m_activity);
@@ -1056,12 +949,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		}
 		int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
 		String textMsg = fTextMsg.getValue();
-		//
 		MWFNode node = m_activity.getNode();
-
 		Object forward = fForward.getValue();
 
-		// ensure activity is ran within a transaction - [ 1953628 ]
 		Trx trx = null;
 		try {
 			trx = Trx.get(Trx.createTrxName("FWFA"), true);
@@ -1087,12 +977,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 					return;
 				}
 			}
-			//	User Choice - Answer
 			else if (MWFNode.ACTION_UserChoice.equals(node.getAction()))
 			{
 				if (m_column == null)
 					m_column = node.getColumn();
-				//	Do we have an answer?
+				
 				int dt = m_column.getAD_Reference_ID();
 				String value = fAnswerText.getText();
 				if (dt == DisplayType.YesNo || DisplayType.isList(dt))
@@ -1107,7 +996,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 					trx.close();
 					return;
 				}
-				//
+				
 				if (log.isLoggable(Level.CONFIG)) log.config("Answer=" + value + " - " + textMsg);
 				try
 				{
@@ -1127,13 +1016,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 					return;
 				}
 			}
-			//	User Action
 			else
 			{
 				if (log.isLoggable(Level.CONFIG)) log.config("Action=" + node.getAction() + " - " + textMsg);
 				try
 				{
-					// ensure activity is ran within a transaction
 					m_activity.setUserConfirmation(AD_User_ID, textMsg);
 					MWFProcess wfpr = new MWFProcess(m_activity.getCtx(), m_activity.getAD_WF_Process_ID(), m_activity.get_TrxName());
 					wfpr.checkCloseActivities(m_activity.get_TrxName());
@@ -1149,7 +1036,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 					trx.close();
 					return;
 				}
-
 			}
 
 			trx.commit();
@@ -1161,8 +1047,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 				trx.close();
 		}
 
-		//	Next
 		loadActivities();
 		display(-1);
-	}	//	onOK
+	}	
 }
