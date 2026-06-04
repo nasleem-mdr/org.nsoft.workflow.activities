@@ -4,32 +4,38 @@
  * Renderer class untuk menampilkan detail dokumen transaksi
  * pada form Workflow Approval (WWFActivity).
  *
- * Arsitektur: SysConfig-driven + Generic PO + SQL Query
- * Tidak ada dependency ke model spesifik (MOrder, MInvoice, dll)
+ * Arsitektur : SysConfig-driven + Generic PO + SQL Query
+ * Versi       : 2.0 — fix ORDER_BY, validasi config, edge case qty/amt
  *
- * Konfigurasi via System Configurator iDempiere:
  * ─────────────────────────────────────────────────────────────────────────────
- * KEY PATTERN : WF_DETAIL_<TableName><Suffix>
+ * SYSCONFIG KEY PATTERN : WF_DETAIL_<TableName><Suffix>
  * ─────────────────────────────────────────────────────────────────────────────
- * Suffix            Keterangan                          Contoh Value
- * _LINE_TABLE       Nama tabel line                     C_OrderLine
- * _LINK_COL         FK kolom di tabel line              C_Order_ID
- * _DESC_COL         Kolom deskripsi/produk (bisa FK)    M_Product_ID>Name,Description
- * _QTY_COL          Kolom qty (dicoba berurutan)         QtyOrdered,QtyEntered
- * _AMT_COL          Kolom amount (dicoba berurutan)      LineNetAmt,PriceActual
- * _HDR_DOCNO        Kolom nomor dokumen                 DocumentNo
- * _HDR_BP           Kolom business partner (bisa FK)    C_BPartner_ID>Name
- * _HDR_DATE         Kolom tanggal (dicoba berurutan)    DateOrdered,DateDoc
- * _HDR_TOTAL        Kolom grand total                   GrandTotal,TotalLines
- * ─────────────────────────────────────────────────────────────────────────────
- * Gunakan "-" sebagai value jika kolom tidak relevan untuk tabel tersebut.
- * Jika SysConfig tidak ada, renderer tetap tampil dengan fallback generik.
+ * Suffix         Wajib   Keterangan                        Contoh Value
+ * _LINE_TABLE    N       Nama tabel line                   C_OrderLine
+ * _LINK_COL      N*      FK kolom di tabel line            C_Order_ID
+ * _ORDER_BY      N       Order by query lines              Line,C_Order_ID
+ * _DESC_COL      N       Kolom deskripsi (bisa FK)         M_Product_ID>Name,Description
+ * _QTY_COL       N       Kolom qty (dicoba berurutan)      QtyOrdered,QtyEntered
+ * _AMT_COL       N       Kolom amount (dicoba berurutan)   LineNetAmt,PriceActual
+ * _HDR_DOCNO     N       Kolom nomor dokumen               DocumentNo
+ * _HDR_BP        N       Kolom BP (bisa FK)                C_BPartner_ID>Name
+ * _HDR_DATE      N       Kolom tanggal (dicoba berurutan)  DateOrdered,DateDoc
+ * _HDR_TOTAL     N       Kolom grand total                 GrandTotal,TotalLines
  *
- * Contoh Konfigurasi:
+ * *) LINK_COL wajib jika LINE_TABLE diisi
+ *
+ * Gunakan "-" sebagai value untuk menonaktifkan kolom tertentu.
+ * Jika SysConfig tidak dikonfigurasi sama sekali, renderer tetap
+ * tampil dengan nilai fallback generik — tidak crash.
+ *
  * ─────────────────────────────────────────────────────────────────────────────
+ * CONTOH KONFIGURASI LENGKAP
+ * ─────────────────────────────────────────────────────────────────────────────
+ *
  * C_Order:
  *   WF_DETAIL_C_Order_LINE_TABLE  = C_OrderLine
  *   WF_DETAIL_C_Order_LINK_COL   = C_Order_ID
+ *   WF_DETAIL_C_Order_ORDER_BY   = Line,C_Order_ID
  *   WF_DETAIL_C_Order_DESC_COL   = M_Product_ID>Name,Description
  *   WF_DETAIL_C_Order_QTY_COL    = QtyOrdered,QtyEntered
  *   WF_DETAIL_C_Order_AMT_COL    = LineNetAmt
@@ -41,6 +47,7 @@
  * C_Invoice:
  *   WF_DETAIL_C_Invoice_LINE_TABLE  = C_InvoiceLine
  *   WF_DETAIL_C_Invoice_LINK_COL   = C_Invoice_ID
+ *   WF_DETAIL_C_Invoice_ORDER_BY   = Line,C_Invoice_ID
  *   WF_DETAIL_C_Invoice_DESC_COL   = M_Product_ID>Name,Description
  *   WF_DETAIL_C_Invoice_QTY_COL    = QtyInvoiced
  *   WF_DETAIL_C_Invoice_AMT_COL    = LineNetAmt
@@ -52,6 +59,7 @@
  * M_InOut:
  *   WF_DETAIL_M_InOut_LINE_TABLE  = M_InOutLine
  *   WF_DETAIL_M_InOut_LINK_COL   = M_InOut_ID
+ *   WF_DETAIL_M_InOut_ORDER_BY   = Line,M_InOut_ID
  *   WF_DETAIL_M_InOut_DESC_COL   = M_Product_ID>Name,Description
  *   WF_DETAIL_M_InOut_QTY_COL    = MovementQty,QtyEntered
  *   WF_DETAIL_M_InOut_AMT_COL    = -
@@ -63,6 +71,7 @@
  * M_Requisition:
  *   WF_DETAIL_M_Requisition_LINE_TABLE  = M_RequisitionLine
  *   WF_DETAIL_M_Requisition_LINK_COL   = M_Requisition_ID
+ *   WF_DETAIL_M_Requisition_ORDER_BY   = Line,M_Requisition_ID
  *   WF_DETAIL_M_Requisition_DESC_COL   = M_Product_ID>Name,Description
  *   WF_DETAIL_M_Requisition_QTY_COL    = Qty
  *   WF_DETAIL_M_Requisition_AMT_COL    = LineNetAmt
@@ -70,11 +79,23 @@
  *   WF_DETAIL_M_Requisition_HDR_BP     = C_BPartner_ID>Name
  *   WF_DETAIL_M_Requisition_HDR_DATE   = DateRequired,DateDoc
  *   WF_DETAIL_M_Requisition_HDR_TOTAL  = TotalLines
+ *
+ * ─────────────────────────────────────────────────────────────────────────────
+ * CHANGELOG
+ * ─────────────────────────────────────────────────────────────────────────────
+ * v2.0 - Fix ORDER_BY configurable agar tidak crash jika kolom Line tidak ada
+ *      - Tambah validateAndWarnConfig() untuk deteksi salah konfigurasi
+ *      - Tambah isNumericValue() untuk validasi qty/amt sebelum format
+ *      - Tambah sanitizeNumeric() untuk handle nilai non-numerik dengan aman
+ *      - Tambah _ORDER_BY sebagai SysConfig key baru
+ *      - resolveColumnValue() lebih defensif terhadap nilai whitespace
+ *      - formatAmount() tidak lagi silent — log warning jika nilai non-numerik
  * ─────────────────────────────────────────────────────────────────────────────
  ******************************************************************************/
 package org.adempiere.webui.apps.wf;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -103,28 +124,33 @@ public class WFTransactionDetailRenderer {
     // =========================================================================
     // SYSCONFIG KEY CONSTANTS
     // =========================================================================
-    private static final String PREFIX       = "WF_DETAIL_";
-    private static final String LINE_TABLE   = "_LINE_TABLE";
-    private static final String LINK_COL     = "_LINK_COL";
-    private static final String DESC_COL     = "_DESC_COL";
-    private static final String QTY_COL      = "_QTY_COL";
-    private static final String AMT_COL      = "_AMT_COL";
-    private static final String HDR_DOCNO    = "_HDR_DOCNO";
-    private static final String HDR_BP       = "_HDR_BP";
-    private static final String HDR_DATE     = "_HDR_DATE";
-    private static final String HDR_TOTAL    = "_HDR_TOTAL";
+    private static final String PREFIX      = "WF_DETAIL_";
+    private static final String LINE_TABLE  = "_LINE_TABLE";
+    private static final String LINK_COL    = "_LINK_COL";
+    private static final String ORDER_BY    = "_ORDER_BY";   // v2.0: configurable order
+    private static final String DESC_COL    = "_DESC_COL";
+    private static final String QTY_COL     = "_QTY_COL";
+    private static final String AMT_COL     = "_AMT_COL";
+    private static final String HDR_DOCNO   = "_HDR_DOCNO";
+    private static final String HDR_BP      = "_HDR_BP";
+    private static final String HDR_DATE    = "_HDR_DATE";
+    private static final String HDR_TOTAL   = "_HDR_TOTAL";
 
     // =========================================================================
     // DEFAULT FALLBACK VALUES
-    // Dipakai jika SysConfig tidak dikonfigurasi untuk tabel tertentu
+    // Dipakai jika SysConfig tidak dikonfigurasi untuk tabel tertentu.
+    // Urutan penting — dicoba dari kiri ke kanan, berhenti di yang pertama ada.
     // =========================================================================
-    private static final String DEFAULT_DOCNO   = "DocumentNo,Value,Name";
-    private static final String DEFAULT_BP      = "C_BPartner_ID>Name";
-    private static final String DEFAULT_DATE    = "DateOrdered,DateInvoiced,MovementDate,DateRequired,DateDoc,Created";
-    private static final String DEFAULT_TOTAL   = "GrandTotal,TotalLines,-";
-    private static final String DEFAULT_DESC    = "M_Product_ID>Name,Description,Name";
-    private static final String DEFAULT_QTY     = "QtyOrdered,QtyInvoiced,MovementQty,QtyEntered,Qty";
-    private static final String DEFAULT_AMT     = "LineNetAmt,PriceActual,-";
+    private static final String DEFAULT_DOCNO  = "DocumentNo,Value,Name";
+    private static final String DEFAULT_BP     = "C_BPartner_ID>Name";
+    private static final String DEFAULT_DATE   = "DateOrdered,DateInvoiced,MovementDate,DateRequired,DateDoc,Created";
+    private static final String DEFAULT_TOTAL  = "GrandTotal,TotalLines,-";
+    private static final String DEFAULT_DESC   = "M_Product_ID>Name,Description,Name";
+    private static final String DEFAULT_QTY    = "QtyOrdered,QtyInvoiced,MovementQty,QtyEntered,Qty";
+    private static final String DEFAULT_AMT    = "LineNetAmt,PriceActual,-";
+    // v2.0: ORDER_BY default hanya pakai linkCol (safe untuk semua tabel)
+    // akan di-resolve dinamis di renderLines() karena butuh linkCol
+    private static final String ORDER_BY_SAFE_FALLBACK = null; // resolved dinamis
 
     // =========================================================================
     // UI COMPONENTS — disuntikkan dari WWFActivity via constructor
@@ -138,7 +164,6 @@ public class WFTransactionDetailRenderer {
 
     // =========================================================================
     // CONSTRUCTOR
-    // Semua UI component disuntikkan dari luar (tidak ada coupling ke WWFActivity)
     // =========================================================================
     public WFTransactionDetailRenderer(
             Groupbox grpTxDetails,
@@ -157,14 +182,14 @@ public class WFTransactionDetailRenderer {
     }
 
     // =========================================================================
-    // PUBLIC API — dipanggil dari WWFActivity.display()
+    // PUBLIC API
     // =========================================================================
 
     /**
-     * Entry point utama. Dipanggil dari WWFActivity setiap kali
+     * Entry point utama. Dipanggil dari WWFActivity.display() setiap kali
      * item approval dipilih di listbox kiri.
      *
-     * @param activity MWFActivity yang sedang aktif, boleh null
+     * @param activity MWFActivity aktif, boleh null
      */
     public void render(MWFActivity activity) {
         clearUI();
@@ -175,12 +200,14 @@ public class WFTransactionDetailRenderer {
         }
 
         try {
-            int clientId = activity.getAD_Client_ID();
-            int tableId  = activity.getAD_Table_ID();
-            int recordId = activity.getRecord_ID();
-
+            int    clientId  = activity.getAD_Client_ID();
+            int    tableId   = activity.getAD_Table_ID();
+            int    recordId  = activity.getRecord_ID();
             MTable table     = MTable.get(Env.getCtx(), tableId);
             String tableName = table.getTableName();
+
+            // v2.0: Validasi konfigurasi — log warning jika ada yang kurang tepat
+            validateAndWarnConfig(tableName, clientId);
 
             PO headerPO = table.getPO(recordId, null);
             if (headerPO == null) {
@@ -196,7 +223,6 @@ public class WFTransactionDetailRenderer {
 
         } catch (Exception e) {
             log.log(Level.SEVERE, "WFTransactionDetailRenderer.render() gagal", e);
-            // Form tidak crash — tampilkan pesan error ringan di caption groupbox
             grpTxDetails.setCaption("Detail (Error: " + e.getMessage() + ")");
             grpTxDetails.setVisible(true);
         }
@@ -216,13 +242,13 @@ public class WFTransactionDetailRenderer {
         lHdrDocNo.setValue(docNo);
 
         // Date
-        String dateCfg  = getSysConfig(tableName, HDR_DATE, clientId, DEFAULT_DATE);
-        Object rawDate  = resolveColumnObject(headerPO, dateCfg);
+        String dateCfg = getSysConfig(tableName, HDR_DATE, clientId, DEFAULT_DATE);
+        Object rawDate = resolveColumnObject(headerPO, dateCfg);
         lHdrDateDoc.setValue(rawDate != null ? formatDate(rawDate) : "-");
 
         // Business Partner
-        String bpCfg    = getSysConfig(tableName, HDR_BP, clientId, DEFAULT_BP);
-        String bpName   = resolveColumnValue(headerPO, bpCfg);
+        String bpCfg  = getSysConfig(tableName, HDR_BP, clientId, DEFAULT_BP);
+        String bpName = resolveColumnValue(headerPO, bpCfg);
         if (isEmpty(bpName))
             bpName = resolveCreatedByName(headerPO);
         lHdrBPName.setValue(bpName);
@@ -230,9 +256,13 @@ public class WFTransactionDetailRenderer {
         // Grand Total
         String totalCfg = getSysConfig(tableName, HDR_TOTAL, clientId, DEFAULT_TOTAL);
         String total    = resolveColumnValue(headerPO, totalCfg);
-        lHdrGrandTotal.setValue(isEmpty(total) ? "-" : formatAmount(total));
 
-        // Update caption groupbox
+        // v2.0: validasi apakah nilai total benar-benar numerik
+        if (!isEmpty(total) && !"-".equals(total))
+            lHdrGrandTotal.setValue(formatAmount(total, "GrandTotal[" + tableName + "]"));
+        else
+            lHdrGrandTotal.setValue("-");
+
         grpTxDetails.setCaption("Detail: " + tableName + "  #" + headerPO.get_ID());
     }
 
@@ -245,16 +275,27 @@ public class WFTransactionDetailRenderer {
         String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
         String linkCol   = getSysConfig(tableName, LINK_COL,   clientId, null);
 
-        // Jika tidak dikonfigurasi atau eksplisit "-", sembunyikan section lines
-        if (isEmpty(lineTable) || isEmpty(linkCol)
-                || "-".equals(lineTable) || "-".equals(linkCol)) {
+        // Tidak ada konfigurasi line table — sembunyikan section lines, tidak error
+        if (isEmpty(lineTable) || "-".equals(lineTable)) {
             lstTxLines.setVisible(false);
             return;
         }
 
-        String descCfg  = getSysConfig(tableName, DESC_COL, clientId, DEFAULT_DESC);
-        String qtyCfg   = getSysConfig(tableName, QTY_COL,  clientId, DEFAULT_QTY);
-        String amtCfg   = getSysConfig(tableName, AMT_COL,  clientId, DEFAULT_AMT);
+        // LINE_TABLE ada tapi LINK_COL kosong — ini kesalahan konfigurasi
+        // Sudah di-log oleh validateAndWarnConfig(), tampilkan pesan ke UI
+        if (isEmpty(linkCol) || "-".equals(linkCol)) {
+            lstTxLines.setVisible(true);
+            appendInfoRow("Konfigurasi tidak lengkap: LINK_COL untuk " + tableName + " belum diisi.");
+            return;
+        }
+
+        String descCfg = getSysConfig(tableName, DESC_COL, clientId, DEFAULT_DESC);
+        String qtyCfg  = getSysConfig(tableName, QTY_COL,  clientId, DEFAULT_QTY);
+        String amtCfg  = getSysConfig(tableName, AMT_COL,  clientId, DEFAULT_AMT);
+
+        // v2.0: ORDER_BY configurable — fallback ke linkCol saja jika tidak dikonfigurasi
+        // Ini aman karena linkCol pasti ada di tabel line sebagai FK
+        String orderByCfg = getSysConfig(tableName, ORDER_BY, clientId, linkCol);
 
         lstTxLines.setVisible(true);
 
@@ -262,24 +303,37 @@ public class WFTransactionDetailRenderer {
             List<PO> lines = new Query(Env.getCtx(), lineTable,
                     linkCol + " = ?", null)
                     .setParameters(recordId)
-                    .setOrderBy("Line, " + linkCol)
+                    .setOrderBy(orderByCfg)
                     .list();
 
             if (lines == null || lines.isEmpty()) {
-                appendEmptyRow("(Tidak ada baris detail)");
+                appendInfoRow("(Tidak ada baris detail)");
                 return;
             }
 
             for (PO line : lines) {
+
+                // 1. Description / Product name
                 String desc = resolveColumnValue(line, descCfg);
                 if (isEmpty(desc)) desc = "Item #" + line.get_ID();
 
-                String qty  = resolveColumnValue(line, qtyCfg);
-                if (isEmpty(qty) || "-".equals(qty)) qty = "0";
+                // 2. Qty — v2.0: sanitize jika nilai adalah non-numerik
+                String qtyRaw = resolveColumnValue(line, qtyCfg);
+                String qty    = sanitizeNumeric(qtyRaw,
+                        "QTY_COL[" + tableName + "] line#" + line.get_ID());
 
-                String amt  = resolveColumnValue(line, amtCfg);
-                if (isEmpty(amt) || "-".equals(amt)) amt = "-";
-                else amt = formatAmount(amt);
+                // 3. Amount — v2.0: sanitize + format jika numerik
+                String amtRaw = resolveColumnValue(line, amtCfg);
+                String amt;
+                if (isEmpty(amtRaw) || "-".equals(amtRaw)) {
+                    amt = "-";
+                } else {
+                    String sanitized = sanitizeNumeric(amtRaw,
+                            "AMT_COL[" + tableName + "] line#" + line.get_ID());
+                    amt = isNumericString(sanitized)
+                            ? formatAmount(sanitized, "AMT[" + tableName + "]")
+                            : sanitized; // tampil apa adanya jika string
+                }
 
                 Listitem item = new Listitem();
                 item.appendChild(new Listcell(desc));
@@ -290,8 +344,56 @@ public class WFTransactionDetailRenderer {
 
         } catch (Exception e) {
             log.log(Level.WARNING, "renderLines gagal: lineTable=" + lineTable
-                    + ", linkCol=" + linkCol, e);
-            appendEmptyRow("Error memuat baris: " + e.getMessage());
+                    + " linkCol=" + linkCol + " orderBy=" + orderByCfg, e);
+            appendInfoRow("Error memuat baris: " + e.getMessage());
+        }
+    }
+
+    // =========================================================================
+    // PRIVATE — VALIDASI KONFIGURASI (v2.0)
+    // Dipanggil sekali per render() — hanya log warning, tidak throw exception
+    // =========================================================================
+
+    /**
+     * Periksa kelengkapan konfigurasi SysConfig untuk tabel yang sedang dirender.
+     * Tidak memblokir eksekusi — hanya memberi peringatan di log untuk admin.
+     */
+    private void validateAndWarnConfig(String tableName, int clientId) {
+        String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
+
+        // Tidak ada konfigurasi sama sekali — wajar, tidak perlu warning
+        if (lineTable == null) return;
+
+        // Ada LINE_TABLE tapi LINK_COL kosong
+        String linkCol = getSysConfig(tableName, LINK_COL, clientId, null);
+        if (isEmpty(linkCol) || "-".equals(linkCol)) {
+            log.warning("[WFDetail] " + tableName
+                    + ": LINE_TABLE=" + lineTable
+                    + " dikonfigurasi tapi LINK_COL kosong atau '-'. Lines tidak akan ditampilkan.");
+        }
+
+        // LINE_TABLE diisi "-" — sengaja dinonaktifkan, OK
+        if ("-".equals(lineTable)) return;
+
+        // QTY_COL tidak dikonfigurasi — akan pakai DEFAULT, beri info
+        String qtyCfg = getSysConfig(tableName, QTY_COL, clientId, null);
+        if (qtyCfg == null) {
+            log.info("[WFDetail] " + tableName
+                    + ": QTY_COL tidak dikonfigurasi, pakai default: " + DEFAULT_QTY);
+        }
+
+        // AMT_COL tidak dikonfigurasi — akan pakai DEFAULT, beri info
+        String amtCfg = getSysConfig(tableName, AMT_COL, clientId, null);
+        if (amtCfg == null) {
+            log.info("[WFDetail] " + tableName
+                    + ": AMT_COL tidak dikonfigurasi, pakai default: " + DEFAULT_AMT);
+        }
+
+        // ORDER_BY tidak dikonfigurasi — akan pakai LINK_COL sebagai fallback, beri info
+        String orderBy = getSysConfig(tableName, ORDER_BY, clientId, null);
+        if (orderBy == null) {
+            log.info("[WFDetail] " + tableName
+                    + ": ORDER_BY tidak dikonfigurasi, fallback ke LINK_COL=" + linkCol);
         }
     }
 
@@ -300,8 +402,8 @@ public class WFTransactionDetailRenderer {
     // =========================================================================
 
     /**
-     * Baca SysConfig dengan key pattern: WF_DETAIL_<TableName><suffix>
-     * Contoh: WF_DETAIL_C_Order_LINE_TABLE
+     * Baca SysConfig dengan key: WF_DETAIL_<TableName><suffix>
+     * Return defaultValue jika key tidak ada atau valuenya kosong/whitespace.
      */
     private String getSysConfig(String tableName, String suffix,
                                 int clientId, String defaultValue) {
@@ -318,10 +420,10 @@ public class WFTransactionDetailRenderer {
 
     /**
      * Resolve nilai String dari daftar kolom (comma-separated).
-     * Dicoba satu per satu, return nilai pertama yang tidak kosong.
+     * Dicoba satu per satu, return nilai pertama yang tidak kosong/whitespace.
      *
-     * Mendukung notasi FK lookup: "C_BPartner_ID>Name"
-     * Untuk skip kolom: gunakan "-"
+     * Mendukung notasi FK: "C_BPartner_ID>Name"
+     * Untuk skip    : "-"
      */
     private String resolveColumnValue(PO po, String columnDefs) {
         if (columnDefs == null || columnDefs.isEmpty()) return null;
@@ -331,13 +433,15 @@ public class WFTransactionDetailRenderer {
             if (candidate.isEmpty() || "-".equals(candidate)) continue;
 
             String value = resolveOneColumn(po, candidate);
-            if (!isEmpty(value)) return value;
+            // v2.0: trim hasil sebelum isEmpty check
+            if (value != null && !value.trim().isEmpty())
+                return value.trim();
         }
         return null;
     }
 
     /**
-     * Resolve Object asli dari kolom (tidak melalui FK).
+     * Resolve Object asli dari kolom non-FK.
      * Digunakan untuk mendapatkan raw Date object sebelum diformat.
      */
     private Object resolveColumnObject(PO po, String columnDefs) {
@@ -356,12 +460,14 @@ public class WFTransactionDetailRenderer {
 
     /**
      * Resolve satu definisi kolom.
-     * Format biasa  : "DocumentNo"
-     * Format FK     : "C_BPartner_ID>Name"
      *
-     * Untuk FK lookup, nama tabel di-derive dari nama kolom:
+     * Format biasa : "DocumentNo"
+     * Format FK    : "C_BPartner_ID>Name"
+     *
+     * Untuk FK, nama tabel di-derive dari nama kolom:
      *   C_BPartner_ID → tabel C_BPartner
      *   M_Product_ID  → tabel M_Product
+     *   AD_User_ID    → tabel AD_User
      */
     private String resolveOneColumn(PO po, String columnDef) {
         if (columnDef == null || columnDef.isEmpty()) return null;
@@ -371,14 +477,13 @@ public class WFTransactionDetailRenderer {
             String[] parts = columnDef.split(">", 2);
             if (parts.length != 2) return null;
 
-            String fkCol     = parts[0].trim(); // contoh: C_BPartner_ID
-            String targetCol = parts[1].trim(); // contoh: Name
+            String fkCol     = parts[0].trim();
+            String targetCol = parts[1].trim();
 
             int fkId = po.get_ValueAsInt(fkCol);
             if (fkId <= 0) return null;
 
-            // Derive nama tabel dari nama kolom FK
-            // C_BPartner_ID → C_BPartner | M_Product_ID → M_Product
+            // Derive nama tabel: C_BPartner_ID → C_BPartner
             String fkTableName = fkCol.endsWith("_ID")
                     ? fkCol.substring(0, fkCol.length() - 3)
                     : fkCol;
@@ -386,53 +491,100 @@ public class WFTransactionDetailRenderer {
             try {
                 MTable fkTable = MTable.get(Env.getCtx(), fkTableName);
                 if (fkTable == null) {
-                    log.warning("FK table tidak ditemukan: " + fkTableName);
+                    log.warning("[WFDetail] FK table tidak ditemukan: " + fkTableName);
                     return null;
                 }
-
                 PO fkPO = fkTable.getPO(fkId, null);
                 if (fkPO == null) return null;
 
                 Object val = fkPO.get_Value(targetCol);
-                return val != null ? val.toString() : null;
+                return val != null ? val.toString().trim() : null;
 
             } catch (Exception e) {
-                log.warning("FK lookup gagal [" + columnDef + "]: " + e.getMessage());
+                log.warning("[WFDetail] FK lookup gagal [" + columnDef + "]: " + e.getMessage());
                 return null;
             }
 
         } else {
             // Kolom biasa
             Object val = po.get_Value(columnDef);
-            return val != null ? val.toString() : null;
+            return val != null ? val.toString().trim() : null;
         }
     }
 
     // =========================================================================
-    // PRIVATE — UTILITY METHODS
+    // PRIVATE — NUMERIC HANDLING (v2.0)
     // =========================================================================
 
     /**
-     * Fallback untuk BP: tampilkan nama user yang membuat dokumen
+     * Sanitize nilai qty/amt yang mungkin berupa string non-numerik.
+     *
+     * - Null / kosong / whitespace → return "0"
+     * - Nilai numerik valid        → return apa adanya (tanpa modifikasi)
+     * - Nilai non-numerik (string) → return "0" + log warning
+     *
+     * @param raw       nilai mentah dari PO
+     * @param context   label untuk keperluan logging (misal "QTY_COL[C_Order]")
      */
-    private String resolveCreatedByName(PO headerPO) {
-        try {
-            int createdBy = headerPO.getCreatedBy();
-            MTable userTable = MTable.get(Env.getCtx(), "AD_User");
-            PO userPO = userTable.getPO(createdBy, null);
-            if (userPO != null) {
-                Object name = userPO.get_Value("Name");
-                if (name != null && !name.toString().trim().isEmpty())
-                    return "By: " + name.toString();
-            }
-        } catch (Exception e) {
-            log.warning("resolveCreatedByName gagal: " + e.getMessage());
-        }
-        return "-";
+    private String sanitizeNumeric(String raw, String context) {
+        if (isEmpty(raw) || "-".equals(raw)) return "0";
+
+        if (isNumericString(raw)) return raw;
+
+        // Nilai ada tapi bukan angka — kemungkinan salah konfigurasi kolom
+        log.warning("[WFDetail] " + context
+                + ": nilai '" + raw + "' bukan numerik, ditampilkan sebagai '0'."
+                + " Periksa konfigurasi QTY_COL/AMT_COL di System Configurator.");
+        return "0";
     }
 
     /**
-     * Format tanggal ke "dd MMM yyyy" sesuai locale iDempiere
+     * Cek apakah string adalah angka valid (termasuk desimal dan negatif).
+     * Contoh valid   : "100", "1500.50", "-200.00", "0"
+     * Contoh invalid : "N/A", "---", "Approved", ""
+     */
+    private boolean isNumericString(String value) {
+        if (isEmpty(value)) return false;
+        try {
+            new BigDecimal(value);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Format amount ke string dengan separator ribuan sesuai locale iDempiere.
+     * Jika nilai bukan numerik (seharusnya sudah disanitize sebelumnya),
+     * log warning dan return nilai mentah.
+     *
+     * @param rawValue  nilai string yang diharapkan numerik
+     * @param context   label untuk logging
+     */
+    private String formatAmount(String rawValue, String context) {
+        if (isEmpty(rawValue) || "-".equals(rawValue)) return "-";
+
+        try {
+            BigDecimal bd = new BigDecimal(rawValue);
+            NumberFormat nf = NumberFormat.getNumberInstance(
+                    Env.getLanguage(Env.getCtx()).getLocale());
+            nf.setMinimumFractionDigits(2);
+            nf.setMaximumFractionDigits(2);
+            return nf.format(bd);
+        } catch (NumberFormatException e) {
+            log.warning("[WFDetail] formatAmount gagal untuk " + context
+                    + ": nilai='" + rawValue + "' bukan numerik, ditampilkan apa adanya.");
+            return rawValue;
+        }
+    }
+
+    // =========================================================================
+    // PRIVATE — DATE FORMATTING
+    // =========================================================================
+
+    /**
+     * Format tanggal ke "dd MMM yyyy" sesuai locale iDempiere.
+     * Handle Timestamp, java.sql.Date, dan java.util.Date.
      */
     private String formatDate(Object dateObj) {
         if (dateObj == null) return "-";
@@ -447,38 +599,49 @@ public class WFTransactionDetailRenderer {
             else
                 return dateObj.toString();
 
-            org.compiere.util.Language lang = Env.getLanguage(Env.getCtx());
-            SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy", lang.getLocale());
+            SimpleDateFormat sdf = new SimpleDateFormat(
+                    "dd MMM yyyy",
+                    Env.getLanguage(Env.getCtx()).getLocale());
             return sdf.format(date);
 
         } catch (Exception e) {
+            log.warning("[WFDetail] formatDate gagal: " + e.getMessage());
             return dateObj.toString();
         }
     }
 
-    /**
-     * Format amount: tambahkan separator ribuan jika string adalah angka
-     */
-    private String formatAmount(String rawValue) {
-        if (rawValue == null || rawValue.isEmpty() || "-".equals(rawValue))
-            return rawValue;
-        try {
-            BigDecimal bd = new BigDecimal(rawValue);
-            java.text.NumberFormat nf = java.text.NumberFormat.getNumberInstance(
-                    Env.getLanguage(Env.getCtx()).getLocale());
-            nf.setMinimumFractionDigits(2);
-            nf.setMaximumFractionDigits(2);
-            return nf.format(bd);
-        } catch (Exception ignored) {
-            return rawValue; // return apa adanya jika bukan angka
-        }
-    }
+    // =========================================================================
+    // PRIVATE — BP FALLBACK
+    // =========================================================================
 
     /**
-     * Reset semua UI component ke kondisi kosong
+     * Fallback jika kolom BP tidak ditemukan:
+     * tampilkan nama user yang membuat dokumen (CreatedBy).
+     */
+    private String resolveCreatedByName(PO headerPO) {
+        try {
+            MTable userTable = MTable.get(Env.getCtx(), "AD_User");
+            PO userPO = userTable.getPO(headerPO.getCreatedBy(), null);
+            if (userPO != null) {
+                Object name = userPO.get_Value("Name");
+                if (name != null && !name.toString().trim().isEmpty())
+                    return "By: " + name.toString().trim();
+            }
+        } catch (Exception e) {
+            log.warning("[WFDetail] resolveCreatedByName gagal: " + e.getMessage());
+        }
+        return "-";
+    }
+
+    // =========================================================================
+    // PRIVATE — UI UTILITIES
+    // =========================================================================
+
+    /**
+     * Reset semua UI component ke kondisi awal / kosong.
+     * Hapus hanya Listitem — Listhead dibiarkan agar header kolom tetap tampil.
      */
     private void clearUI() {
-        // Hapus hanya Listitem — biarkan Listhead tetap
         List<Listitem> toRemove = new ArrayList<>(lstTxLines.getItems());
         for (Listitem item : toRemove)
             lstTxLines.removeChild(item);
@@ -492,9 +655,10 @@ public class WFTransactionDetailRenderer {
     }
 
     /**
-     * Tambahkan satu baris placeholder (kosong / error message)
+     * Tambahkan satu baris informasi/pesan di Listbox lines.
+     * Dipakai untuk kondisi kosong, error, atau warning konfigurasi.
      */
-    private void appendEmptyRow(String message) {
+    private void appendInfoRow(String message) {
         Listitem item = new Listitem();
         item.appendChild(new Listcell(message));
         item.appendChild(new Listcell("-"));
@@ -503,7 +667,7 @@ public class WFTransactionDetailRenderer {
     }
 
     /**
-     * Null-safe empty check
+     * Null-safe empty check — true jika null, kosong, atau hanya whitespace.
      */
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
