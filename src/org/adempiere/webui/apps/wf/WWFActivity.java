@@ -154,6 +154,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Label lHdrGrandTotal = new Label();
 	private Tabbox tabboxDetail = new Tabbox();
 	private Tabpanels tabpanels = new Tabpanels();
+	private WFTransactionDetailRenderer txRenderer;
 
 	private FlexHlayout createModernActionButtons() {
 		FlexHlayout buttonLayout = new FlexHlayout();
@@ -211,6 +212,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                 Env.getCtx(), "AD_User_ID"), "", true, false, true);
 
         init();
+		txRenderer = new WFTransactionDetailRenderer(
+                grpTxDetails,
+                lstTxLines,
+                lHdrDocNo,
+                lHdrDateDoc,
+                lHdrBPName,
+                lHdrGrandTotal
+        );
         display(-1);
     }
 
@@ -440,346 +449,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		this.setStyle("height: 100%; width: 100%; position: relative;");
 	}
 
-private void renderTransactionDetails(MWFActivity activity) {
-    // 1. Bersihkan baris lama di UI Listbox
-    if (lstTxLines.getItemCount() > 0) {
-        List<Listitem> items = new ArrayList<>(lstTxLines.getItems());
-        for (Listitem item : items) {
-            lstTxLines.removeChild(item);
-        }
-    }
-    
-    grpTxDetails.setVisible(true);
-    lHdrDocNo.setValue("-");
-    lHdrDateDoc.setValue("-");
-    lHdrBPName.setValue("-");
-    lHdrGrandTotal.setValue("-");
-
-    if (activity == null || activity.getRecord_ID() <= 0) return;
-
-    try {
-        int tableId = activity.getAD_Table_ID();
-        MTable table = MTable.get(Env.getCtx(), tableId);
-        
-        // Mengambil objek PO secara generik (tanpa cast ke MOrder/MInvoice)
-        PO headerPO = table.getPO(activity.getRecord_ID(), null);
-        if (headerPO == null) return;
-
-        // --- BAGIAN HEADER: Menggunakan get_Value atau get_ValueAsString ---
-		// 1. Ambil DocumentNo, jika tidak ada cari kolom alternatif (Value, Name, atau ID)
-        String docNo = headerPO.get_ValueAsString("DocumentNo");
-        if (docNo == null || docNo.isEmpty()) {
-            docNo = headerPO.get_ValueAsString("Value"); // misal untuk M_Product
-        }
-        if (docNo == null || docNo.isEmpty()) {
-            docNo = headerPO.get_ValueAsString("Name");  // misal untuk tabel master lain
-        }
-        if (docNo == null || docNo.isEmpty()) {
-            // Jika tidak ada nama/value, tampilkan nama tabel + ID-nya
-        docNo = headerPO.get_TableName() + " #" + headerPO.get_ID(); 
-    }
-    lHdrDocNo.setValue(docNo);
-
-    // 2. Ambil BPartner, jika tidak ada kolom C_BPartner_ID, kosongkan atau cari Info User pembuat
-    int bpId = headerPO.get_ValueAsInt("C_BPartner_ID");
-    if (bpId > 0) {
-            org.compiere.model.MBPartner bp = new org.compiere.model.MBPartner(Env.getCtx(), bpId, null);
-            lHdrBPName.setValue(bp.getName());
-        } else {
-            // Jika bukan dokumen transaksi (tidak ada BP), tampilkan nama user yang membuat dokumen ini
-            int userId = headerPO.getCreatedBy();
-            org.compiere.model.MUser user = new org.compiere.model.MUser(Env.getCtx(), userId, null);
-            lHdrBPName.setValue("Created By: " + user.getName());
-        }
-		
-        lHdrDateDoc.setValue(formatDate(activity.getCreated()));
-        
-        // Ambil BPartner ID menggunakan get_ValueAsInt secara generik
-        int bpId = headerPO.get_ValueAsInt("C_BPartner_ID");
-        if (bpId > 0) {
-            org.compiere.model.MBPartner bp = new org.compiere.model.MBPartner(Env.getCtx(), bpId, null);
-            lHdrBPName.setValue(bp.getName());
-        }
-
-        // Ambil GrandTotal secara generik
-        java.math.BigDecimal grandTotal = headerPO.get_ValueAsBigDecimal("GrandTotal");
-        if (grandTotal == null) grandTotal = headerPO.get_ValueAsBigDecimal("TotalLines");
-        lHdrGrandTotal.setValue(grandTotal != null ? grandTotal.toString() : "-");
-
-        // --- BAGIAN DETAIL: Mengambil Lines menggunakan Reflection Generik ---
-        Object[] lines = null;
-        try {
-            Method getLinesMethod = headerPO.getClass().getMethod("getLines");
-            lines = (Object[]) getLinesMethod.invoke(headerPO);
-        } catch (NoSuchMethodException e) {
-            try {
-                // Fallback jika method getLines butuh parameter TrxName
-                Method getLinesMethod = headerPO.getClass().getMethod("getLines", String.class);
-                lines = (Object[]) getLinesMethod.invoke(headerPO, headerPO.get_TrxName());
-            } catch (Exception ignored) {}
-        }
-
-        if (lines != null && lines.length > 0) {
-            // Ambil daftar nama kolom dari SysConfig yang sudah di-set di Step 1
-            String sysConfigQty = MSysConfig.getValue("WF_APPROVAL_QTY_COLUMNS", "QtyOrdered,QtyInvoiced,Qty", activity.getAD_Client_ID());
-            String sysConfigAmt = MSysConfig.getValue("WF_APPROVAL_AMT_COLUMNS", "LineNetAmt,PriceActual", activity.getAD_Client_ID());
-            
-            String[] qtyColumns = sysConfigQty.split(",");
-            String[] amtColumns = sysConfigAmt.split(",");
-
-            for (Object lineObj : lines) {
-                // Cast ke objek PO generik (Tidak butuh import MOrderLine / MInvoiceLine!)
-                PO line = (PO) lineObj; 
-                Listitem item = new Listitem();
-
-                // 1. Ambil Deskripsi/Product
-                String itemDetail = "-";
-                int productId = line.get_ValueAsInt("M_Product_ID");
-                if (productId > 0) {
-                    org.compiere.model.MProduct prod = new org.compiere.model.MProduct(Env.getCtx(), productId, null);
-                    itemDetail = prod.getName();
-                } else {
-                    itemDetail = line.get_ValueAsString("Description");
-                }
-
-                // 2. Ambil Qty secara dinamis berdasarkan list dari SysConfig
-                String qtyValue = "0";
-                for (String colName : qtyColumns) {
-                    Object val = line.get_Value(colName.trim());
-                    if (val != null) {
-                        qtyValue = val.toString();
-                        break; // Berhenti jika kolom terdeteksi ada nilainya
-                    }
-                }
-
-                // 3. Ambil Amount/Total secara dinamis berdasarkan list dari SysConfig
-                String amtValue = "0";
-                for (String colName : amtColumns) {
-                    Object val = line.get_Value(colName.trim());
-                    if (val != null) {
-                        amtValue = val.toString();
-                        break; // Berhenti jika kolom terdeteksi ada nilainya
-                    }
-                }
-
-                // Tambahkan ke UI Listbox detail
-                item.appendChild(new Listcell(itemDetail != null ? itemDetail : "Item"));
-                item.appendChild(new Listcell(qtyValue));
-                item.appendChild(new Listcell(amtValue));
-                lstTxLines.appendChild(item);
-            }
-        }
-    } catch (Exception e) {
-        log.log(Level.SEVERE, "Gagal memproses renderTransactionDetails secara dinamis", e);
-    }
-}
-	
-	private void renderTransactionDetails(MWFActivity activity) {
-		// Bersihkan baris lama tapi biarkan komponen Listhead tetap terjaga
-		if (lstTxLines.getItemCount() > 0) {
-			List<Listitem> items = new ArrayList<>(lstTxLines.getItems());
-			for (Listitem item : items) {
-				lstTxLines.removeChild(item);
-			}
-		}
-		
-		grpTxDetails.setVisible(true);
-		lHdrDocNo.setValue("-");
-		lHdrDateDoc.setValue("-");
-		lHdrBPName.setValue("-");
-		lHdrGrandTotal.setValue("-");
-
-		if (activity == null || activity.getRecord_ID() <= 0) return;
-
-		try {
-			int tableId = activity.getAD_Table_ID();
-			MTable table = MTable.get(Env.getCtx(), tableId);
-			PO headerPO = table.getPO(activity.getRecord_ID(), null);
-			
-			if (headerPO == null) return;
-
-			grpTxDetails.setVisible(true);
-
-			lHdrDocNo.setValue(getFieldValue(headerPO, "getDocumentNo"));
-			Object rawDate = activity.getCreated();
-			lHdrDateDoc.setValue(formatDate(rawDate));
-			lHdrBPName.setValue(getBPName(headerPO));
-			
-			String grandTotal = getFieldValue(headerPO, "getGrandTotal", "getTotalLines");
-			if ("-".equals(grandTotal)) {
-				grandTotal = calcTotalFromLines(headerPO);
-			}
-			lHdrGrandTotal.setValue(grandTotal);
-
-			Method getLinesMethod = null;
-			try {
-				getLinesMethod = headerPO.getClass().getMethod("getLines");
-			} catch (NoSuchMethodException e) {
-                log.warning("...");
-                // Sembunyikan section lines jika tidak ada:
-                lstTxLines.setVisible(false);
-                grpTxDetails.setCaption("Header Doc (Tanpa Baris)");
-                return;
-	    	}
-			
-			Object[] lines = (Object[]) getLinesMethod.invoke(headerPO);
-			if (lines != null && lines.length > 0) {
-				for (Object line : lines) {
-					Listitem item = new Listitem();
-					String itemDetail = getProductName(line);
-					
-					String qty = "0";
-					String[] qtyMethodNames = {"getQtyInvoiced", "getQtyOrdered", "getQtyEntered", "getQtyField", "getQtyDelivered", "getQty"};
-					for (String methodName : qtyMethodNames) {
-						try {
-							Method getQty = line.getClass().getMethod(methodName);
-							Object qtyObj = getQty.invoke(line);
-							if (qtyObj != null) {
-								qty = qtyObj.toString();
-								break;
-							}
-						} catch (Exception ignored) {}
-					}
-
-					String lineNetAmt = "0";
-					try {
-						Method getLineNetAmt = line.getClass().getMethod("getLineNetAmt");
-						Object amtObj = getLineNetAmt.invoke(line);
-						if (amtObj != null) lineNetAmt = amtObj.toString();
-					} catch (Exception e) {
-						try {
-							Method getPriceActual = line.getClass().getMethod("getPriceActual");
-							Object priceObj = getPriceActual.invoke(line);
-							if (priceObj != null) lineNetAmt = priceObj.toString();
-						} catch (Exception ignored) {}
-					}
-
-					item.appendChild(new Listcell(itemDetail));
-					item.appendChild(new Listcell(qty));
-					item.appendChild(new Listcell(lineNetAmt));
-					lstTxLines.appendChild(item);
-				}
-			}
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Gagal memproses renderTransactionDetails kustom", e);
-		}
-	}
-
-	private String getFieldValue(Object obj, String... methodNames) {
-		for (String methodName : methodNames) {
-			try {
-				Method m   = obj.getClass().getMethod(methodName);
-				Object val = m.invoke(obj);
-				if (val != null && !val.toString().trim().isEmpty())
-					return val.toString();
-			} catch (Exception ignored) {}
-		}
-		return "-";
-	}
-
-	private String getBPName(PO headerPO) {
-		try {
-			Method getBP = headerPO.getClass().getMethod("getC_BPartner");
-			Object bp    = getBP.invoke(headerPO);
-			if (bp != null) {
-				Method getName = bp.getClass().getMethod("getName");
-				Object name    = getName.invoke(bp);
-				if (name != null && !name.toString().trim().isEmpty())
-					return name.toString();
-			}
-		} catch (Exception ignored) {}
-
-		try {
-			Method getIdMethod = headerPO.getClass().getMethod("getC_BPartner_ID");
-			Object bpId        = getIdMethod.invoke(headerPO);
-			if (bpId != null && (Integer) bpId > 0) {
-				org.compiere.model.MBPartner bp = new org.compiere.model.MBPartner(Env.getCtx(), (Integer) bpId, null);
-				if (bp.getName() != null) return bp.getName();
-			}
-		} catch (Exception ignored) {}
-
-		return "-";
-	}
-
-	private String getProductName(Object line) {
-		try {
-			Method getProduct = line.getClass().getMethod("getM_Product");
-			Object product    = getProduct.invoke(line);
-			if (product != null) {
-				Method getName = product.getClass().getMethod("getName");
-				Object name    = getName.invoke(product);
-				if (name != null && !name.toString().trim().isEmpty())
-					return name.toString();
-			}
-		} catch (Exception ignored) {}
-
-		String desc = getFieldValue(line, "getDescription", "getName");
-		return "-".equals(desc) ? "Item" : desc;
-	}
-
-	private String calcTotalFromLines(PO headerPO) {
-		try {
-			Method getLinesMethod = headerPO.getClass().getMethod("getLines");
-			Object[] lines        = (Object[]) getLinesMethod.invoke(headerPO);
-
-			if (lines == null || lines.length == 0)
-				return "-";
-
-			java.math.BigDecimal total = java.math.BigDecimal.ZERO;
-			for (Object line : lines) {
-				try {
-					Method m   = line.getClass().getMethod("getLineNetAmt");
-					Object val = m.invoke(line);
-					if (val instanceof java.math.BigDecimal) {
-						total = total.add((java.math.BigDecimal) val);
-						continue;
-					}
-				} catch (Exception ignored) {}
-
-				try {
-					Method mPrice = line.getClass().getMethod("getPriceActual");
-					Method mQty   = line.getClass().getMethod("getQtyOrdered");
-					Object price  = mPrice.invoke(line);
-					Object qty    = mQty.invoke(line);
-					if (price instanceof java.math.BigDecimal && qty instanceof java.math.BigDecimal)
-						total = total.add(((java.math.BigDecimal) price).multiply((java.math.BigDecimal) qty));
-				} catch (Exception ignored) {}
-			}
-
-			return total.setScale(2, java.math.RoundingMode.HALF_UP).toPlainString();
-		} catch (Exception e) {
-			log.warning("calcTotalFromLines gagal: " + e.getMessage());
-			return "-";
-		}
-	}
-
-	private String formatDate(Object dateObj) {
-		if (dateObj == null) return "-";
-		try {
-			java.util.Date date;
-			if (dateObj instanceof java.sql.Timestamp)
-				date = new java.util.Date(((java.sql.Timestamp) dateObj).getTime());
-			else if (dateObj instanceof java.sql.Date)
-				date = new java.util.Date(((java.sql.Date) dateObj).getTime());
-			else
-				return dateObj.toString();
-
-			org.compiere.util.Language lang = Env.getLanguage(Env.getCtx());
-			java.util.Locale locale = lang.getLocale();
-
-			java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd MMMM yyyy", locale);
-			return sdf.format(date);
-		} catch (Exception e) {
-			return dateObj.toString();
-		}
-	}
-
-	private Listheader createHeader(String label, String ratio) {
-        Listheader header = new Listheader(label);
-        header.setHflex(ratio); 
-        return header;
-    }
-
 	private void executeApprovalDirectly(boolean isApproved) {
 		if (m_activity == null) return;
 
@@ -815,7 +484,13 @@ private void renderTransactionDetails(MWFActivity activity) {
 			log.log(java.util.logging.Level.SEVERE, "Gagal mengeksekusi aksi tombol persetujuan kustom", ex);
 		}
 	}
-
+	// Helper membuat header dengan rasio lebar persentase fleksibel (hflex)
+    private org.zkoss.zul.Listheader createHeader(String label, String ratio) {
+        Listheader header = new Listheader(label);
+        header.setHflex(ratio); 
+        return header;
+    }
+	
 	@Override
 	public void onEvent(Event event) throws Exception
 	{
@@ -967,10 +642,11 @@ private void renderTransactionDetails(MWFActivity activity) {
 		m_activity = resetDisplay(index);
 		if (m_activity == null)
 		{
+			txRenderer.render(null);
 			return;
 		}
 
-		renderTransactionDetails(m_activity);
+		txRenderer.render(m_activity);
 
 		fNode.setText (m_activity.getNodeName());
 		fDescription.setValue (m_activity.getNodeDescription());
