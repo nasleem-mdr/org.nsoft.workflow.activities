@@ -47,13 +47,8 @@ import org.adempiere.webui.window.Dialog;
 import org.compiere.model.MColumn;
 import org.compiere.model.MLookup;
 import org.compiere.model.MLookupFactory;
-import org.compiere.model.MQuery;
 import org.compiere.model.MRefList;
-import org.compiere.model.MSysConfig;
-import org.compiere.model.Query;
 import org.compiere.model.SystemIDs;
-import org.compiere.model.MTable;
-import org.compiere.model.PO;
 import org.zkoss.zul.West;
 import org.zkoss.zul.Listitem;
 import org.compiere.util.CLogger;
@@ -81,7 +76,6 @@ import org.zkoss.zul.North;
 import org.zkoss.zul.South;
 import org.zkoss.zul.Vlayout;
 import org.zkoss.zul.Groupbox;
-import java.lang.reflect.Method;
 import org.zkoss.zul.Listhead;
 import org.zkoss.zul.Listheader;
 import org.zkoss.zul.Tabbox;
@@ -459,7 +453,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 				boolean itemFound = false;
 				
 				for (int i = 0; i < fAnswerList.getItemCount(); i++) {
-					org.zkoss.zul.Listitem li = fAnswerList.getItemAtIndex(i);
+					Listitem li = fAnswerList.getItemAtIndex(i);
 					if (targetValue.equalsIgnoreCase(li.getValue())) {
 						fAnswerList.setSelectedIndex(i);
 						itemFound = true;
