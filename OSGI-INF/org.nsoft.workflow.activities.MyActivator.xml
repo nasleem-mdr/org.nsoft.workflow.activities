@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scr:component xmlns:scr="http://osgi.org" name="org.nsoft.workflow.activities.MyActivator">
+   <implementation class="org.nsoft.workflow.activities.MyActivator"/>
+   <property name="service.ranking" type="Integer" value="100"/>
+</scr:component>
