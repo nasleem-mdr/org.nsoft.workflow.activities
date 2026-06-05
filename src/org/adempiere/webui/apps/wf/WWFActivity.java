@@ -517,6 +517,10 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         	if (m_index >= 0)
     			display(m_index);
         }
+		else if ("onOK".equals(eventName))  // ← TAMBAH INI
+        {
+            onOK();
+    	}
         else
         {
     		super.onEvent(event);
