@@ -84,6 +84,9 @@ import org.zkoss.zul.Tabs;
 import org.zkoss.zul.Tab;
 import org.zkoss.zul.Tabpanels;
 import org.zkoss.zul.Tabpanel;
+import org.compiere.model.Query;
+import org.compiere.model.MSysConfig;
+import org.compiere.model.MQuery;
 
 /**
  * Workflow activity form
@@ -290,9 +293,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		// Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
 		Tabpanel panelLines = new Tabpanel();
         tabpanels.appendChild(panelLines);
-		
-		//grpTxDetails = new Groupbox();
-		grpTxDetails.setCaption("Header Doc");
+			
+		org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Header Doc");
+		grpTxDetails.appendChild(cp);
 		grpTxDetails.setOpen(true);
 		grpTxDetails.setHflex("1");
 		grpTxDetails.setVisible(true); 
@@ -517,7 +520,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         	if (m_index >= 0)
     			display(m_index);
         }
-		else if ("onOK".equals(eventName))  // ← TAMBAH INI
+		else if ("onOK".equals(eventName))  
         {
             onOK();
     	}
@@ -720,6 +723,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			int AD_Window_ID = node.getAD_Window_ID();		
 			String ColumnName = m_activity.getPO().get_TableName() + "_ID";
 			int Record_ID = m_activity.getRecord_ID();
+			//MQuery query = new MQuery(ColumnName, "=", Record_ID);
 			MQuery query = MQuery.getEqualQuery(ColumnName, Record_ID);
 			boolean IsSOTrx = m_activity.isSOTrx();
 			

@@ -1,1 +1,18 @@
-Bundle
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: org.nsoft.workflow.activities
+Bundle-SymbolicName: org.nsoft.workflow.activities;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Require-Bundle: org.eclipse.core.runtime,
+ org.adempiere.base;bundle-version="13.0.0",
+ org.adempiere.ui.zk;bundle-version="13.0.0",
+ org.adempiere.plugin.utils,
+ zk,
+ zkbind,
+ zkplus,
+ zul
+Import-Package: org.adempiere.webui.apps,
+ org.osgi.framework
+Bundle-RequiredExecutionEnvironment: JavaSE-17
+Bundle-Activator: org.adempiere.webui.apps.wf.MyActivator
+Service-Component: OSGI-INF/*.xml

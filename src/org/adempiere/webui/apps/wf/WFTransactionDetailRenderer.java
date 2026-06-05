@@ -113,6 +113,8 @@ import org.zkoss.zul.Label;
 import org.zkoss.zul.Listbox;
 import org.zkoss.zul.Listcell;
 import org.zkoss.zul.Listitem;
+import org.compiere.model.MQuery;
+
 
 public class WFTransactionDetailRenderer {
 
@@ -211,7 +213,8 @@ public class WFTransactionDetailRenderer {
 
             PO headerPO = table.getPO(recordId, null);
             if (headerPO == null) {
-                grpTxDetails.setCaption("Detail (" + tableName + " #" + recordId + " tidak ditemukan)");
+            	org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Detail (" + tableName + " #" + recordId + " tidak ditemukan)");
+            	grpTxDetails.appendChild(cp);
                 grpTxDetails.setVisible(true);
                 return;
             }
@@ -223,7 +226,8 @@ public class WFTransactionDetailRenderer {
 
         } catch (Exception e) {
             log.log(Level.SEVERE, "WFTransactionDetailRenderer.render() gagal", e);
-            grpTxDetails.setCaption("Detail (Error: " + e.getMessage() + ")");
+            org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Detail (Error: " + e.getMessage() + ")");
+            grpTxDetails.appendChild(cp);
             grpTxDetails.setVisible(true);
         }
     }
@@ -263,7 +267,8 @@ public class WFTransactionDetailRenderer {
         else
             lHdrGrandTotal.setValue("-");
 
-        grpTxDetails.setCaption("Detail: " + tableName + "  #" + headerPO.get_ID());
+        org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Detail: " + tableName + "  #" + headerPO.get_ID());
+        grpTxDetails.appendChild(cp);
     }
 
     // =========================================================================
@@ -650,7 +655,9 @@ public class WFTransactionDetailRenderer {
         lHdrDateDoc.setValue("-");
         lHdrBPName.setValue("-");
         lHdrGrandTotal.setValue("-");
-        grpTxDetails.setCaption("Detail Transaksi");
+        //grpTxDetails.setCaption("Detail Transaksi");
+        org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Detail Transaksi");
+        grpTxDetails.appendChild(cp);
         grpTxDetails.setVisible(false);
     }
 
