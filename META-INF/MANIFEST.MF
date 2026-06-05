@@ -14,5 +14,5 @@ Require-Bundle: org.eclipse.core.runtime,
 Import-Package: org.adempiere.webui.apps,
  org.osgi.framework
 Bundle-RequiredExecutionEnvironment: JavaSE-17
-Bundle-Activator: org.adempiere.webui.apps.wf.MyActivator
+Bundle-Activator: org.nsoft.workflow.activities.MyActivator
 Service-Component: OSGI-INF/*.xml
