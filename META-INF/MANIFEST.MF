@@ -3,7 +3,6 @@ Bundle-ManifestVersion: 2
 Bundle-Name: org.nsoft.workflow.activities
 Bundle-SymbolicName: org.nsoft.workflow.activities;singleton:=true
 Bundle-Version: 1.0.0.qualifier
-Bundle-Activator: org.nsoft.workflow.activities.MyActivator
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Require-Bundle: org.eclipse.core.runtime,
  org.adempiere.base;bundle-version="13.0.0",
