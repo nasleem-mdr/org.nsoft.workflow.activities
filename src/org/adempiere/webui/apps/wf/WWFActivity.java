@@ -88,6 +88,8 @@ import org.compiere.model.Query;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MQuery;
 import org.nsoft.workflow.activities.WFTransactionDetailRenderer;
+import org.zkoss.zk.ui.Execution;
+import org.zkoss.zk.ui.Executions;
 
 /**
  * Workflow activity form
@@ -227,225 +229,231 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			btn.setTooltiptext(text);
 	}
 
-	private void init()
-	{
-		// Part 1: West Panel (Approval List)
-		West westPanel = new West();
-		westPanel.setSize("320px");
-		westPanel.setSplittable(true);
-		westPanel.setCollapsible(true);
-		westPanel.setTitle("Approval List");
-		
-		listbox.setSclass("wf-approval-listbox");
-		ZKUpdateUtil.setVflex(listbox, "1");
-		ZKUpdateUtil.setHflex(listbox, "1");
-		westPanel.appendChild(listbox);
-		listbox.addEventListener(Events.ON_SELECT, this);
-
-		// Part 2: Center Panel - Node Approval
-		Vlayout nodeApprovalArea = new Vlayout();
-		nodeApprovalArea.setHflex("1");
-		nodeApprovalArea.setSpacing("8px");
-		nodeApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px;");
-
-		titleNode.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block; margin-bottom: 5px;");
-		nodeApprovalArea.appendChild(titleNode);
-
-		Vlayout nodeGroup = new Vlayout();
-		nodeGroup.setSpacing("3px");
-		lNode.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
-		nodeGroup.appendChild(lNode);
-		nodeGroup.appendChild(fNode);
-		ZKUpdateUtil.setHflex(fNode, "true");
-		fNode.setReadonly(true);
-		fNode.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px;");
-		nodeApprovalArea.appendChild(nodeGroup);
-
-		Vlayout descGroup = new Vlayout();
-		descGroup.setSpacing("3px");
-		lDesctiption.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
-		descGroup.appendChild(lDesctiption);
-		descGroup.appendChild(fDescription);
-		ZKUpdateUtil.setHflex(fDescription, "true");
-		fDescription.setMultiline(true);
-		fDescription.setReadonly(true);
-		fDescription.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; min-height: 40px;");
-		nodeApprovalArea.appendChild(descGroup);
-
-		Vlayout helpGroup = new Vlayout();
-		helpGroup.setSpacing("3px");
-		lHelp.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
-		helpGroup.appendChild(lHelp);
-		helpGroup.appendChild(fHelp);
-		ZKUpdateUtil.setHflex(fHelp, "true");
-		fHelp.setMultiline(true);
-		fHelp.setRows(2);
-		fHelp.setReadonly(true);
-		fHelp.setStyle("background: #f7fafc; border: 1px solid #cbd5e0; padding: 6px; border-radius: 4px; font-style: italic; color: #718096;");
-		nodeApprovalArea.appendChild(helpGroup);
-
-		// Part 3.1: Struktur Tabbox Utama
-		Tabs tabs = new Tabs();
-		tabs.appendChild(new Tab("Detail Transaksi")); 
-		tabs.appendChild(new Tab("Riwayat"));          
-		tabboxDetail.appendChild(tabs);       
-		tabboxDetail.appendChild(tabpanels);  
-
-		// Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
-		Tabpanel panelLines = new Tabpanel();
-        tabpanels.appendChild(panelLines);
-			
-		org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Header Doc");
-		grpTxDetails.appendChild(cp);
-		grpTxDetails.setOpen(true);
-		grpTxDetails.setHflex("1");
-		grpTxDetails.setVisible(true); 
-		grpTxDetails.setStyle("border: none; padding: 0;");
-
-		Grid headerGrid = new Grid();
-		headerGrid.setStyle("border: none; margin-bottom: 10px;");
-		Columns columns = new Columns();
-		columns.appendChild(new Column());
-		columns.appendChild(new Column());
-		headerGrid.appendChild(columns);
-
-		Rows rows = new Rows();
-
-		Row row1 = new Row();
-		row1.appendChild(new Label("Doc No:"));
-		row1.appendChild(lHdrDocNo);
-		rows.appendChild(row1);
-
-		Row row2 = new Row();
-		row2.appendChild(new Label("Date:"));
-		row2.appendChild(lHdrDateDoc);
-		rows.appendChild(row2);
-
-		Row row3 = new Row();
-		row3.appendChild(new Label("BP Name:"));
-		row3.appendChild(lHdrBPName);
-		rows.appendChild(row3);
-
-		Row row4 = new Row();
-		row4.appendChild(new Label("Grand Total:"));
-		row4.appendChild(lHdrGrandTotal);
-		rows.appendChild(row4);
-
-		headerGrid.appendChild(rows);
-		grpTxDetails.appendChild(headerGrid); 
-
-		//lstTxLines = new Listbox();
-		lstTxLines.setHflex("1");
-		lstTxLines.setSpan(true);
-		lstTxLines.setSclass("mobile-scrollable-list");
-
-		Listhead listHead = new Listhead();
-		listHead.appendChild(createHeader("Description", "2")); 
-		listHead.appendChild(createHeader("Qty", "1"));         
-		listHead.appendChild(createHeader("Total", "1"));       
-		lstTxLines.appendChild(listHead);
-
-		grpTxDetails.appendChild(lstTxLines); 
-		panelLines.appendChild(grpTxDetails); 
-		
-		// Part 3.3: Membuat Tabpanel 2 - History
-		Tabpanel panelHistory = new Tabpanel(); 
-		tabpanels.appendChild(panelHistory);  
-
-		Vlayout historyLayout = new Vlayout();
-		historyLayout.setHflex("1");
-		historyLayout.setSpacing("5px");
-		lHistory.setStyle("font-weight: bold; color: #2d3748;");
-		historyLayout.appendChild(lHistory);
-		historyLayout.appendChild(fHistory);
-		fHistory.setStyle("width: 100%;border: 1px solid #cbd5e0; border-radius: 4px; padding: 6px;");
-		panelHistory.appendChild(historyLayout);
-
-		// Part 4: Center Panel - Approval Action (Footer)
-		Vlayout footerApprovalArea = new Vlayout();
-		footerApprovalArea.setHflex("1");
-		footerApprovalArea.setSpacing("12px");
-		footerApprovalArea.setStyle("background: #ffffff; padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-top: 10px;");
-
-		titleAction.setStyle("font-weight: bold; font-size: 14px; color: #2d3748; display: block;");
-		footerApprovalArea.appendChild(titleAction);
-
-		Vlayout msgGroup = new Vlayout();
-		msgGroup.setSpacing("5px");
-		lTextMsg.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
-		msgGroup.appendChild(lTextMsg);
-		msgGroup.appendChild(fTextMsg);
-		fTextMsg.setMultiline(true);
-		fTextMsg.setRows(3);
-		ZKUpdateUtil.setWidth(fTextMsg, "100%");
-		fTextMsg.setStyle("border: 1px solid #cbd5e0; padding: 8px; border-radius: 4px; font-family: sans-serif;");
-		footerApprovalArea.appendChild(msgGroup);
-
-		FlexHlayout answerRow = new FlexHlayout();
-		answerRow.setHflex("1");
-		answerRow.setValign("middle");
-		lAnswer.setStyle("font-weight: 600; color: #4a5568; font-size: 12px; margin-right: 5px;");
-		answerRow.appendChild(lAnswer);
-		answerRow.appendChild(fAnswerText);
-		ZKUpdateUtil.setHflex(fAnswerText, "true");
-		answerRow.appendChild(fAnswerList);
-		answerRow.appendChild(fAnswerButton);
-		answerRow.appendChild(bZoom);
-		footerApprovalArea.appendChild(answerRow);
-		fAnswerButton.addEventListener(Events.ON_CLICK, this);
-		bZoom.addEventListener(Events.ON_CLICK, this);
-
-		Vlayout forwardSection = new Vlayout();
-		forwardSection.setSpacing("5px");
-		lForward.setStyle("font-weight: 600; color: #4a5568; font-size: 12px;");
-		forwardSection.appendChild(lForward);
-		
-		FlexHlayout forwardActions = new FlexHlayout();
-		forwardActions.setHflex("1");
-		forwardActions.setValign("middle");
-		forwardActions.appendChild(fForward.getComponent());
-		forwardActions.appendChild(bOK);
-		forwardActions.appendChild(bRefresh);
-		bOK.addEventListener(Events.ON_CLICK, this);
-		bRefresh.addEventListener(Events.ON_CLICK, this);
-		forwardSection.appendChild(forwardActions);
-		
-		footerApprovalArea.appendChild(forwardSection);
-        // Langsung append hasil createModernActionButtons() ke footer:
-        FlexHlayout actionButtons = createModernActionButtons();
-        footerApprovalArea.appendChild(actionButtons);
-
-		// Part 5: Main layout
-		Borderlayout mainChatLayout = new Borderlayout();
-		ZKUpdateUtil.setWidth(mainChatLayout, "100%");
-		ZKUpdateUtil.setHeight(mainChatLayout, "100%");
-		mainChatLayout.setStyle("background-color: #f7f9fa; position: relative;");
-
-		mainChatLayout.appendChild(westPanel);
-
-		Center centerPanel = new Center();
-		centerPanel.setStyle("background-color: transparent; overflow: auto;");
-
-		Vlayout chatAreaLayout = new Vlayout();
-		chatAreaLayout.setHflex("1");
-		chatAreaLayout.setSpacing("15px");
-		chatAreaLayout.setStyle("padding: 15px;");
-
-		chatAreaLayout.appendChild(nodeApprovalArea);   
-		chatAreaLayout.appendChild(tabboxDetail);       
-		chatAreaLayout.appendChild(footerApprovalArea);  
-
-		centerPanel.appendChild(chatAreaLayout);
-		mainChatLayout.appendChild(centerPanel);
-
-		South south = new South();
-		south.appendChild(statusBar);
-		south.setStyle("background-color: transparent;");
-		mainChatLayout.appendChild(south);
-
-		this.appendChild(mainChatLayout);
-		this.setStyle("height: 100%; width: 100%; position: relative;");
+private void init()
+{
+	org.zkoss.zk.ui.Execution exec = org.zkoss.zk.ui.Executions.getCurrent();
+    if (exec != null) {
+        // Melampirkan stylesheet ke head halaman secara dinamis
+        exec.addPreheadHTML("<link rel=\"stylesheet\" type=\"text/css\" href=\"~./css/wf-style.css\" />");
 	}
+    // Part 1: West Panel (Approval List)
+    West westPanel = new West();
+    westPanel.setSize("320px");
+    westPanel.setSplittable(true);
+    westPanel.setCollapsible(true);
+    westPanel.setTitle("Approval List");
+    westPanel.setSclass("wf-west-panel"); // Tambahan class untuk West Panel
+    
+    listbox.setSclass("wf-approval-listbox");
+    ZKUpdateUtil.setVflex(listbox, "1");
+    ZKUpdateUtil.setHflex(listbox, "1");
+    westPanel.appendChild(listbox);
+    listbox.addEventListener(Events.ON_SELECT, this);
+
+    // Part 2: Center Panel - Node Approval
+    Vlayout nodeApprovalArea = new Vlayout();
+    nodeApprovalArea.setHflex("1");
+    nodeApprovalArea.setSpacing("8px");
+    nodeApprovalArea.setSclass("wf-card-container"); // Mengganti inline style container
+
+    titleNode.setSclass("wf-section-title"); // Mengganti inline style title
+    nodeApprovalArea.appendChild(titleNode);
+
+    Vlayout nodeGroup = new Vlayout();
+    nodeGroup.setSpacing("3px");
+    lNode.setSclass("wf-field-label"); // Class label standar iDempiere
+    nodeGroup.appendChild(lNode);
+    nodeGroup.appendChild(fNode);
+    ZKUpdateUtil.setHflex(fNode, "true");
+    fNode.setReadonly(true);
+    fNode.setSclass("wf-field-input-readonly"); // Class input readonly kustom
+    nodeApprovalArea.appendChild(nodeGroup);
+
+    Vlayout descGroup = new Vlayout();
+    descGroup.setSpacing("3px");
+    lDesctiption.setSclass("wf-field-label");
+    descGroup.appendChild(lDesctiption);
+    descGroup.appendChild(fDescription);
+    ZKUpdateUtil.setHflex(fDescription, "true");
+    fDescription.setMultiline(true);
+    fDescription.setReadonly(true);
+    fDescription.setSclass("wf-field-input-readonly wf-min-height-40");
+    nodeApprovalArea.appendChild(descGroup);
+
+    Vlayout helpGroup = new Vlayout();
+    helpGroup.setSpacing("3px");
+    lHelp.setSclass("wf-field-label");
+    helpGroup.appendChild(lHelp);
+    helpGroup.appendChild(fHelp);
+    ZKUpdateUtil.setHflex(fHelp, "true");
+    fHelp.setMultiline(true);
+    fHelp.setRows(2);
+    fHelp.setReadonly(true);
+    fHelp.setSclass("wf-field-input-readonly wf-help-text");
+    nodeApprovalArea.appendChild(helpGroup);
+
+    // Part 3.1: Struktur Tabbox Utama
+    tabboxDetail.setSclass("wf-tabbox-custom"); // Custom tabbox theme styling
+    Tabs tabs = new Tabs();
+    tabs.appendChild(new Tab("Detail Transaksi")); 
+    tabs.appendChild(new Tab("Riwayat"));          
+    tabboxDetail.appendChild(tabs);       
+    tabboxDetail.appendChild(tabpanels);  
+
+    // Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
+    Tabpanel panelLines = new Tabpanel();
+    tabpanels.appendChild(panelLines);
+        
+    org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Header Doc");
+    grpTxDetails.appendChild(cp);
+    grpTxDetails.setOpen(true);
+    grpTxDetails.setHflex("1");
+    grpTxDetails.setVisible(true); 
+    grpTxDetails.setSclass("wf-groupbox-clean"); // Hilangkan border default groupbox
+
+    Grid headerGrid = new Grid();
+    headerGrid.setSclass("wf-grid-clean"); // Grid bersih tanpa borders bawaan ZK
+    Columns columns = new Columns();
+    columns.appendChild(new Column());
+    columns.appendChild(new Column());
+    headerGrid.appendChild(columns);
+
+    Rows rows = new Rows();
+
+    Row row1 = new Row();
+    row1.appendChild(new Label("Doc No:"));
+    row1.appendChild(lHdrDocNo);
+    rows.appendChild(row1);
+
+    Row row2 = new Row();
+    row2.appendChild(new Label("Date:"));
+    row2.appendChild(lHdrDateDoc);
+    rows.appendChild(row2);
+
+    Row row3 = new Row();
+    row3.appendChild(new Label("BP Name:"));
+    row3.appendChild(lHdrBPName);
+    rows.appendChild(row3);
+
+    Row row4 = new Row();
+    row4.appendChild(new Label("Grand Total:"));
+    row4.appendChild(lHdrGrandTotal);
+    rows.appendChild(row4);
+
+    headerGrid.appendChild(rows);
+    grpTxDetails.appendChild(headerGrid); 
+
+    lstTxLines.setHflex("1");
+    lstTxLines.setSpan(true);
+    lstTxLines.setSclass("mobile-scrollable-list wf-details-listbox");
+
+    Listhead listHead = new Listhead();
+    listHead.appendChild(createHeader("Description", "2")); 
+    listHead.appendChild(createHeader("Qty", "1"));         
+    listHead.appendChild(createHeader("Total", "1"));       
+    lstTxLines.appendChild(listHead);
+
+    grpTxDetails.appendChild(lstTxLines); 
+    panelLines.appendChild(grpTxDetails); 
+    
+    // Part 3.3: Membuat Tabpanel 2 - History
+    Tabpanel panelHistory = new Tabpanel(); 
+    tabpanels.appendChild(panelHistory);  
+
+    Vlayout historyLayout = new Vlayout();
+    historyLayout.setHflex("1");
+    historyLayout.setSpacing("5px");
+    lHistory.setSclass("wf-section-title-sm");
+    historyLayout.appendChild(lHistory);
+    historyLayout.appendChild(fHistory);
+    fHistory.setSclass("wf-history-textarea");
+    panelHistory.appendChild(historyLayout);
+
+    // Part 4: Center Panel - Approval Action (Footer)
+    Vlayout footerApprovalArea = new Vlayout();
+    footerApprovalArea.setHflex("1");
+    footerApprovalArea.setSpacing("12px");
+    footerApprovalArea.setSclass("wf-card-container wf-margin-top-10");
+
+    titleAction.setSclass("wf-section-title");
+    footerApprovalArea.appendChild(titleAction);
+
+    Vlayout msgGroup = new Vlayout();
+    msgGroup.setSpacing("5px");
+    lTextMsg.setSclass("wf-field-label");
+    msgGroup.appendChild(lTextMsg);
+    msgGroup.appendChild(fTextMsg);
+    fTextMsg.setMultiline(true);
+    fTextMsg.setRows(3);
+    ZKUpdateUtil.setWidth(fTextMsg, "100%");
+    fTextMsg.setSclass("wf-textarea-action");
+    footerApprovalArea.appendChild(msgGroup);
+
+    FlexHlayout answerRow = new FlexHlayout();
+    answerRow.setHflex("1");
+    answerRow.setValign("middle");
+    lAnswer.setSclass("wf-field-label wf-margin-right-5");
+    answerRow.appendChild(lAnswer);
+    answerRow.appendChild(fAnswerText);
+    ZKUpdateUtil.setHflex(fAnswerText, "true");
+    answerRow.appendChild(fAnswerList);
+    answerRow.appendChild(fAnswerButton);
+    answerRow.appendChild(bZoom);
+    footerApprovalArea.appendChild(answerRow);
+    fAnswerButton.addEventListener(Events.ON_CLICK, this);
+    bZoom.addEventListener(Events.ON_CLICK, this);
+
+    Vlayout forwardSection = new Vlayout();
+    forwardSection.setSpacing("5px");
+    lForward.setSclass("wf-field-label");
+    forwardSection.appendChild(lForward);
+    
+    FlexHlayout forwardActions = new FlexHlayout();
+    forwardActions.setHflex("1");
+    forwardActions.setValign("middle");
+    forwardActions.appendChild(fForward.getComponent());
+    forwardActions.appendChild(bOK);
+    forwardActions.appendChild(bRefresh);
+    bOK.addEventListener(Events.ON_CLICK, this);
+    bRefresh.addEventListener(Events.ON_CLICK, this);
+    forwardSection.appendChild(forwardActions);
+    
+    footerApprovalArea.appendChild(forwardSection);
+    
+    FlexHlayout actionButtons = createModernActionButtons();
+    footerApprovalArea.appendChild(actionButtons);
+
+    // Part 5: Main layout
+    Borderlayout mainChatLayout = new Borderlayout();
+    ZKUpdateUtil.setWidth(mainChatLayout, "100%");
+    ZKUpdateUtil.setHeight(mainChatLayout, "100%");
+    mainChatLayout.setSclass("wf-main-layout");
+
+    mainChatLayout.appendChild(westPanel);
+
+    Center centerPanel = new Center();
+    centerPanel.setSclass("wf-center-panel");
+
+    Vlayout chatAreaLayout = new Vlayout();
+    chatAreaLayout.setHflex("1");
+    chatAreaLayout.setSpacing("15px");
+    chatAreaLayout.setSclass("wf-chat-area-padding");
+
+    chatAreaLayout.appendChild(nodeApprovalArea);   
+    chatAreaLayout.appendChild(tabboxDetail);       
+    chatAreaLayout.appendChild(footerApprovalArea);  
+
+    centerPanel.appendChild(chatAreaLayout);
+    mainChatLayout.appendChild(centerPanel);
+
+    South south = new South();
+    south.appendChild(statusBar);
+    south.setSclass("wf-south-panel");
+    mainChatLayout.appendChild(south);
+
+    this.appendChild(mainChatLayout);
+    this.setSclass("wf-window-root");
+}
 
 	private void executeApprovalDirectly(boolean isApproved) {
 		if (m_activity == null) return;
