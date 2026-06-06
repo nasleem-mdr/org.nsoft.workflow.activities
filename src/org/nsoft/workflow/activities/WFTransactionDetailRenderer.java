@@ -384,16 +384,11 @@ public class WFTransactionDetailRenderer {
 
         } catch (Exception e) {
             log.log(Level.SEVERE, "WFTransactionDetailRenderer.render() gagal", e);
-            org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption(
-                    "Detail (Error: " + e.getMessage() + ")");
-            grpTxDetails.appendChild(cp);
-            grpTxDetails.setVisible(true);
+            setGroupboxCaption("Detail (" + tableName + " #" + recordId + " tidak ditemukan)");
+            setGroupboxCaption("Detail (Error: " + e.getMessage() + ")");
         }
     }
 
-    // =========================================================================
-    // PRIVATE — RENDER HEADER
-    // =========================================================================
 
     private void renderHeader(PO headerPO, String tableName, int clientId) {
 
@@ -429,14 +424,8 @@ public class WFTransactionDetailRenderer {
         setLabelWithTitle(lHdrCol4, lHdrCol4Title, hdr4Val, hdr4Label);
 
         // Caption groupbox
-        org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption(
-                "Detail: " + tableName + "  #" + headerPO.get_ID());
-        grpTxDetails.appendChild(cp);
+        setGroupboxCaption("Detail: " + tableName + "  #" + headerPO.get_ID());
     }
-
-    // =========================================================================
-    // PRIVATE — RENDER LINES
-    // =========================================================================
 
     private void renderLines(PO headerPO, String tableName, int recordId, int clientId) {
 
@@ -515,10 +504,6 @@ public class WFTransactionDetailRenderer {
         }
     }
 
-    // =========================================================================
-    // PRIVATE — RENDER LISTHEAD DINAMIS (v3.0)
-    // =========================================================================
-
     /**
      * Rebuild Listhead di lstTxLines berdasarkan konfigurasi _COL1_LABEL,
      * _COL2_LABEL, _COL3_LABEL.
@@ -551,11 +536,6 @@ public class WFTransactionDetailRenderer {
 
         lstTxLines.insertBefore(head, lstTxLines.getFirstChild());
     }
-
-    // =========================================================================
-    // PRIVATE — VALIDASI KONFIGURASI
-    // =========================================================================
-
     private void validateAndWarnConfig(String tableName, int clientId) {
         String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
         if (lineTable == null) return;
@@ -586,10 +566,6 @@ public class WFTransactionDetailRenderer {
                     + ": ORDER_BY tidak dikonfigurasi, fallback ke LINK_COL=" + linkCol);
     }
 
-    // =========================================================================
-    // PRIVATE — SYSCONFIG READER
-    // =========================================================================
-
     /**
      * Baca SysConfig dengan key: WF_DETAIL_<TableName><suffix>
      * Return defaultValue jika key tidak ada atau valuenya kosong/whitespace.
@@ -602,10 +578,6 @@ public class WFTransactionDetailRenderer {
                 ? value.trim()
                 : defaultValue;
     }
-
-    // =========================================================================
-    // PRIVATE — COLUMN RESOLVERS
-    // =========================================================================
 
     /**
      * Resolve nilai String dari daftar kolom (comma-separated).
@@ -716,10 +688,6 @@ public class WFTransactionDetailRenderer {
         return val != null ? val.toString().trim() : null;
     }
 
-    // =========================================================================
-    // PRIVATE — TYPE-AWARE FORMATTING (v3.0)
-    // =========================================================================
-
     /**
      * Format nilai berdasarkan tipe yang dikonfigurasi.
      *
@@ -781,10 +749,6 @@ public class WFTransactionDetailRenderer {
         }
     }
 
-    // =========================================================================
-    // PRIVATE — DATE FORMATTING
-    // =========================================================================
-
     private String formatDate(Object dateObj) {
         if (dateObj == null) return "-";
         try {
@@ -809,10 +773,6 @@ public class WFTransactionDetailRenderer {
         }
     }
 
-    // =========================================================================
-    // PRIVATE — BP FALLBACK
-    // =========================================================================
-
     private String resolveCreatedByName(PO headerPO) {
         try {
             MTable userTable = MTable.get(Env.getCtx(), "AD_User");
@@ -827,10 +787,6 @@ public class WFTransactionDetailRenderer {
         }
         return "-";
     }
-
-    // =========================================================================
-    // PRIVATE — UI UTILITIES
-    // =========================================================================
 
     /**
      * Set nilai label dan title (judul field) secara bersamaan.
@@ -859,11 +815,19 @@ public class WFTransactionDetailRenderer {
         setLabelWithTitle(lHdrCol3, lHdrCol3Title, "-", "");
         setLabelWithTitle(lHdrCol4, lHdrCol4Title, "-", "");
 
-        org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Detail Transaksi");
-        grpTxDetails.appendChild(cp);
+        setGroupboxCaption("Detail Transaksi");
         grpTxDetails.setVisible(false);
     }
+    
+    private void setGroupboxCaption(String text) {
+    // Hapus Caption lama jika ada
+    org.zkoss.zul.Caption existing = grpTxDetails.getCaption();
+    if (existing != null)
+        grpTxDetails.removeChild(existing);
 
+    org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption(text);
+    grpTxDetails.appendChild(cp);
+    }
     /**
      * Tambahkan satu baris informasi/pesan di Listbox lines.
      */
