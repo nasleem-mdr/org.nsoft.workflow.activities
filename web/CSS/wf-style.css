@@ -1,0 +1,163 @@
+/* Container Utama Layout */
+.wf-window-root {
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
+.wf-main-layout {
+    background-color: #f8fafc !important; /* Warna dasar abu-abu lembut iDempiere */
+    position: relative;
+}
+
+.wf-west-panel, .wf-south-panel, .wf-center-panel {
+    background-color: transparent !important;
+    border: none !important;
+}
+
+.wf-center-panel {
+    overflow: auto !important;
+}
+
+.wf-chat-area-padding {
+    padding: 16px !important;
+}
+
+/* Pola Kartu Komponen (Card Containers) */
+.wf-card-container {
+    background: #ffffff;
+    padding: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Soft shadow standar admin panel */
+}
+
+/* Tipografi & Label */
+.wf-section-title {
+    font-weight: bold;
+    font-size: 14px;
+    color: #1e293b; /* Slate-800 iDempiere */
+    display: block;
+    margin-bottom: 6px;
+}
+
+.wf-section-title-sm {
+    font-weight: bold;
+    color: #1e293b;
+}
+
+.wf-field-label {
+    font-weight: 600;
+    color: #475569; /* Slate-600 */
+    font-size: 12px;
+}
+
+/* Kustomisasi Input Form Readonly & Textarea */
+.wf-field-input-readonly {
+    background: #f1f5f9 !important; /* Muted gray background */
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 10px !important;
+    border-radius: 4px;
+    color: #334155 !important;
+}
+
+.wf-help-text {
+    font-style: italic;
+    color: #64748b !important;
+}
+
+.wf-textarea-action {
+    border: 1px solid #cbd5e1 !important;
+    padding: 8px !important;
+    border-radius: 4px;
+    font-family: var(--base-font-family, sans-serif);
+}
+
+.wf-history-textarea {
+    width: 100%;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 4px;
+    padding: 6px !important;
+}
+
+/* Reset Grid & Groupbox iDempiere Default */
+.z-grid.wf-grid-clean, .wf-grid-clean .z-row, .wf-grid-clean .z-cell {
+    border: none !important;
+    background: transparent !important;
+    padding: 4px 0px !important;
+}
+
+.z-groupbox.wf-groupbox-clean {
+    border: none !important;
+    padding: 0 !important;
+}
+
+/* Tabbox Modern Overrides */
+.z-tabbox.wf-tabbox-custom .z-tabs {
+    background: transparent !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+}
+
+/* Margin/Padding Utility Ringan */
+.wf-margin-top-10 { margin-top: 10px !important; }
+.wf-margin-right-5 { margin-right: 5px !important; }
+.wf-min-height-40 { min-height: 40px !important; }
+/* Responsive Breakpoint untuk Mobile (Smartphone) */
+@media screen and (max-width: 768px) {
+    
+    /* 1. Paksa Layout Utama Menjadi Satu Kolom Vertikal */
+    .wf-main-layout .z-west, 
+    .wf-main-layout .z-center {
+        display: block !important;
+        width: 100% !important;
+        position: relative !important;
+        left: 0 !important;
+        top: 0 !important;
+    }
+    
+    /* Buat West Panel (Daftar Approval) mengalir di atas atau bisa di-collapse */
+    .wf-west-panel {
+        width: 100% !important;
+        height: auto !important;
+        max-height: 250px; /* Batasi tinggi daftar approval di mobile */
+        border-bottom: 2px solid #e2e8f0 !important;
+    }
+
+    /* 2. Ubah Layout Tombol & Input Horizontal Menjadi Vertikal */
+    .z-flexhlayout, /* Menargetkan FlexHlayout Anda */
+    .wf-card-container .z-flexhlayout {
+        display: flex !important;
+        flex-direction: column !important; /* Susun ke bawah, bukan ke samping */
+        align-items: stretch !important;
+        gap: 8px; /* Beri jarak antar komponen yang turun */
+    }
+
+    /* Sesuaikan komponen di dalam baris action agar memenuhi lebar layar */
+    .wf-card-container .z-flexhlayout > * {
+        width: 100% !important;
+        margin-right: 0 !important;
+        margin-bottom: 4px;
+    }
+
+    /* 3. Optimasi Ukuran Font dan Padding di Mobile */
+    .wf-chat-area-padding {
+        padding: 8px !important; /* Perkecil padding luar agar hemat ruang */
+    }
+
+    .wf-card-container {
+        padding: 12px;
+    }
+
+    /* 4. Buat Grid Data Transaksi Menjadi Scrollable atau Stacked */
+    .wf-grid-clean .z-row {
+        display: flex;
+        flex-direction: column;
+        padding: 8px 0;
+        border-bottom: 1px dashed #e2e8f0 !important;
+    }
+    
+    .wf-grid-clean .z-cell {
+        width: 100% !important;
+        padding: 2px 0 !important;
+    }
+}
