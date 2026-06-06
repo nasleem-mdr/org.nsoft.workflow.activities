@@ -87,6 +87,7 @@ import org.zkoss.zul.Tabpanel;
 import org.compiere.model.Query;
 import org.compiere.model.MSysConfig;
 import org.compiere.model.MQuery;
+import org.nsoft.workflow.activities.WFTransactionDetailRenderer;
 
 /**
  * Workflow activity form
