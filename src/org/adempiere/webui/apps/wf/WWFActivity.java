@@ -148,10 +148,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private	Label titleApprove = new Label(Msg.getMsg(Env.getCtx(),"Approve"));
 	private	Label titleReject = new Label(Msg.getMsg(Env.getCtx(),"Reject"));
 	private final static String HISTORY_DIV_START_TAG = "<div style='overflow-y:scroll;height: 100px; border: 1px solid #7F9DB9;'>";
-	private Label lHdrDocNo      = new Label();
-	private Label lHdrDateDoc    = new Label();
-	private Label lHdrBPName     = new Label();
-	private Label lHdrGrandTotal = new Label();
+	private Label lHdrCol1      = new Label();
+    private Label lHdrCol2      = new Label();
+    private Label lHdrCol3      = new Label();
+    private Label lHdrCol4      = new Label();
+	private Label lHdrCol1Title = new Label("No. Document");
+    private Label lHdrCol2Title = new Label("Business Partner");
+    private Label lHdrCol3Title = new Label("Date");
+    private Label lHdrCol4Title = new Label("Total");
 	private Tabbox tabboxDetail = new Tabbox();
 	private Tabpanels tabpanels = new Tabpanels();
 	private WFTransactionDetailRenderer txRenderer;
@@ -213,14 +217,13 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
         init();
 		txRenderer = new WFTransactionDetailRenderer(
-                grpTxDetails,
-                lstTxLines,
-                lHdrDocNo,
-                lHdrDateDoc,
-                lHdrBPName,
-                lHdrGrandTotal
+                grpTxDetails,   lstTxLines,
+                lHdrCol1,       lHdrCol1Title,
+                lHdrCol2,       lHdrCol2Title,
+                lHdrCol3,       lHdrCol3Title,
+                lHdrCol4,       lHdrCol4Title
         );
-        display(-1);
+       display(-1);
     }
 
 	private void setTooltipText(Button btn, String key) {
@@ -309,49 +312,59 @@ private void init()
     grpTxDetails.setOpen(true);
     grpTxDetails.setHflex("1");
     grpTxDetails.setVisible(true); 
-    grpTxDetails.setSclass("wf-groupbox-clean"); // Hilangkan border default groupbox
-
-    Grid headerGrid = new Grid();
-    headerGrid.setSclass("wf-grid-clean"); // Grid bersih tanpa borders bawaan ZK
-    Columns columns = new Columns();
-    columns.appendChild(new Column());
-    columns.appendChild(new Column());
-    headerGrid.appendChild(columns);
-
-    Rows rows = new Rows();
-
-    Row row1 = new Row();
-    row1.appendChild(new Label("Doc No:"));
-    row1.appendChild(lHdrDocNo);
-    rows.appendChild(row1);
-
-    Row row2 = new Row();
-    row2.appendChild(new Label("Date:"));
-    row2.appendChild(lHdrDateDoc);
-    rows.appendChild(row2);
-
-    Row row3 = new Row();
-    row3.appendChild(new Label("BP Name:"));
-    row3.appendChild(lHdrBPName);
-    rows.appendChild(row3);
-
-    Row row4 = new Row();
-    row4.appendChild(new Label("Grand Total:"));
-    row4.appendChild(lHdrGrandTotal);
-    rows.appendChild(row4);
-
-    headerGrid.appendChild(rows);
-    grpTxDetails.appendChild(headerGrid); 
-
+    grpTxDetails.setSclass("wf-groupbox-clean"); 
+	
+	Grid headerGrid = new Grid();
+    headerGrid.setSclass("wf-grid-clean");
+ 
+    // 3 kolom: [title] [value] [spacer] — pair kiri dan kanan per baris
+    Columns headerCols = new Columns();
+    Column cTitle1 = new Column(); cTitle1.setHflex("1");
+    Column cValue1 = new Column(); cValue1.setHflex("2");
+    Column cSpacer = new Column(); cSpacer.setWidth("20px");
+    Column cTitle2 = new Column(); cTitle2.setHflex("1");
+    Column cValue2 = new Column(); cValue2.setHflex("2");
+    headerCols.appendChild(cTitle1);
+    headerCols.appendChild(cValue1);
+    headerCols.appendChild(cSpacer);
+    headerCols.appendChild(cTitle2);
+    headerCols.appendChild(cValue2);
+    headerGrid.appendChild(headerCols);
+ 
+	Rows headerRows = new Rows();
+ 
+    // Baris 1: [Col1 title + value] | [Col2 title + value]
+    Row hRow1 = new Row();
+    lHdrCol1Title.setSclass("wf-field-label");
+    lHdrCol1.setSclass("wf-field-value");
+    lHdrCol2Title.setSclass("wf-field-label");
+    lHdrCol2.setSclass("wf-field-value");
+    hRow1.appendChild(lHdrCol1Title);
+    hRow1.appendChild(lHdrCol1);
+    hRow1.appendChild(new Label()); // spacer
+    hRow1.appendChild(lHdrCol2Title);
+    hRow1.appendChild(lHdrCol2);
+    headerRows.appendChild(hRow1);
+ 
+    // Baris 2: [Col3 title + value] | [Col4 title + value]
+    Row hRow2 = new Row();
+    lHdrCol3Title.setSclass("wf-field-label");
+    lHdrCol3.setSclass("wf-field-value");
+    lHdrCol4Title.setSclass("wf-field-label");
+    lHdrCol4.setSclass("wf-field-value wf-value-numeric");
+    hRow2.appendChild(lHdrCol3Title);
+    hRow2.appendChild(lHdrCol3);
+    hRow2.appendChild(new Label()); // spacer
+    hRow2.appendChild(lHdrCol4Title);
+    hRow2.appendChild(lHdrCol4);
+    headerRows.appendChild(hRow2);
+ 
+    headerGrid.appendChild(headerRows);
+    grpTxDetails.appendChild(headerGrid);
+	
     lstTxLines.setHflex("1");
     lstTxLines.setSpan(true);
     lstTxLines.setSclass("mobile-scrollable-list wf-details-listbox");
-
-    Listhead listHead = new Listhead();
-    listHead.appendChild(createHeader("Description", "2")); 
-    listHead.appendChild(createHeader("Qty", "1"));         
-    listHead.appendChild(createHeader("Total", "1"));       
-    lstTxLines.appendChild(listHead);
 
     grpTxDetails.appendChild(lstTxLines); 
     panelLines.appendChild(grpTxDetails); 
