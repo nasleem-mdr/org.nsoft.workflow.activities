@@ -1,10 +1,10 @@
 /*******************************************************************************
  * WFTransactionDetailRenderer.java
  *
- * Renderer class untuk menampilkan detail dokumen transaksi
- * pada form Workflow Approval (WWFActivity).
+ * Renderer class to query document details
+ * at Workflow Approval (WWFActivity) Form
  *
- * Arsitektur : SysConfig-driven + Generic PO + SQL Query
+ * Architecture : SysConfig-driven + Generic PO + SQL Query
  * Versi       : 2.0 — fix ORDER_BY, validasi config, edge case qty/amt
  *
  * ─────────────────────────────────────────────────────────────────────────────
