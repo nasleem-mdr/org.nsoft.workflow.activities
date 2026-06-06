@@ -4,7 +4,7 @@ IDempiere Workflow Approval Form Customize, add detail transaction view and chan
 Query use System Configuration 
 SYSCONFIG KEY PATTERN :
 WF_DETAIL_<TableName><Suffix>
-───────────────────────────
+─────────────────────────
 | Suffix      | Mandatory | Description                 |
 |-------------|-----------|-----------------------------|
 | _LINE_TABLE | N         | Table line Name             |
@@ -18,16 +18,13 @@ WF_DETAIL_<TableName><Suffix>
 | _HDR_DATE   | N         | Document Date               |
 | _HDR_TOTAL  | N         | Total Amount                |
 
-
- * *) LINK_COL wajib jika LINE_TABLE diisi
- *
- * Gunakan "-" sebagai value untuk menonaktifkan kolom tertentu.
- * Jika SysConfig tidak dikonfigurasi sama sekali, renderer tetap
- * tampil dengan nilai fallback generik — tidak crash.
- *
- * ─────────────────────────────────────────────────────────────────────────────
- * CONTOH KONFIGURASI LENGKAP
- * ─────────────────────────────
+# LINK_COL mandatory if LINE_TABLE is filled
+ 
+# User "-" as value to disable column
+ 
+ * ─────────────────────
+ * Example Configuration 
+ * ──────────────────────
 C_Order:
 WF_DETAIL_C_Order_LINE_TABLE  = C_OrderLine
 WF_DETAIL_C_Order_LINK_COL   = C_Order_ID
