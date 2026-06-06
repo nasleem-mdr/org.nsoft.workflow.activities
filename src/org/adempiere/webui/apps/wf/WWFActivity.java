@@ -307,8 +307,6 @@ private void init()
     Tabpanel panelLines = new Tabpanel();
     tabpanels.appendChild(panelLines);
         
-    org.zkoss.zul.Caption cp = new org.zkoss.zul.Caption("Header Doc");
-    grpTxDetails.appendChild(cp);
     grpTxDetails.setOpen(true);
     grpTxDetails.setHflex("1");
     grpTxDetails.setVisible(true); 
