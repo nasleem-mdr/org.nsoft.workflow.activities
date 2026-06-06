@@ -122,7 +122,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Label lHelp = new Label(Msg.translate(Env.getCtx(), "Help"));
 	private Textbox fHelp = new Textbox();
 	private Label lHistory = new Label(Msg.translate(Env.getCtx(), "History"));
-	private Html fHistory = new Html(); // Memperbaiki duplikasi fHistory Textbox yang salah sebelumnya
+	private Html fHistory = new Html(); 
 	private Label lAnswer = new Label(Msg.getMsg(Env.getCtx(), "Answer"));
 	private Textbox fAnswerText = new Textbox();
 	private Listbox fAnswerList = new Listbox();
@@ -236,7 +236,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	{
 		org.zkoss.zk.ui.Execution exec = org.zkoss.zk.ui.Executions.getCurrent();
 	    if (exec != null) {
-	        // Melampirkan stylesheet ke head halaman secara dinamis
+	        // Stylesheet attached to pade head dinamicly
 	        exec.addPreheadHTML("<link rel=\"stylesheet\" type=\"text/css\" href=\"~./css/wf-style.css\" />");
 		}
 	    // Part 1: West Panel (Approval List)
@@ -245,7 +245,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    westPanel.setSplittable(true);
 	    westPanel.setCollapsible(true);
 	    westPanel.setTitle("Approval List");
-	    westPanel.setSclass("wf-west-panel"); // Tambahan class untuk West Panel
+	    westPanel.setSclass("wf-west-panel"); 
 	    
 	    listbox.setSclass("wf-approval-listbox");
 	    ZKUpdateUtil.setVflex(listbox, "1");
@@ -253,23 +253,23 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    westPanel.appendChild(listbox);
 	    listbox.addEventListener(Events.ON_SELECT, this);
 	
-	    // Part 2: Center Panel - Node Approval
+	    // Part 2: Center Panel - Approval Node
 	    Vlayout nodeApprovalArea = new Vlayout();
 	    nodeApprovalArea.setHflex("1");
 	    nodeApprovalArea.setSpacing("8px");
-	    nodeApprovalArea.setSclass("wf-card-container"); // Mengganti inline style container
+	    nodeApprovalArea.setSclass("wf-card-container"); 
 	
-	    titleNode.setSclass("wf-section-title"); // Mengganti inline style title
+	    titleNode.setSclass("wf-section-title"); 
 	    nodeApprovalArea.appendChild(titleNode);
 	
 	    Vlayout nodeGroup = new Vlayout();
 	    nodeGroup.setSpacing("3px");
-	    lNode.setSclass("wf-field-label"); // Class label standar iDempiere
+	    lNode.setSclass("wf-field-label"); 
 	    nodeGroup.appendChild(lNode);
 	    nodeGroup.appendChild(fNode);
 	    ZKUpdateUtil.setHflex(fNode, "true");
 	    fNode.setReadonly(true);
-	    fNode.setSclass("wf-field-input-readonly"); // Class input readonly kustom
+	    fNode.setSclass("wf-field-input-readonly"); 
 	    nodeApprovalArea.appendChild(nodeGroup);
 	
 	    Vlayout descGroup = new Vlayout();
@@ -295,15 +295,15 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    fHelp.setSclass("wf-field-input-readonly wf-help-text");
 	    nodeApprovalArea.appendChild(helpGroup);
 	
-	    // Part 3.1: Struktur Tabbox Utama
-	    tabboxDetail.setSclass("wf-tabbox-custom"); // Custom tabbox theme styling
+	    // Part 3.1: Structure Main Tabbox
+	    tabboxDetail.setSclass("wf-tabbox-custom"); 
 	    Tabs tabs = new Tabs();
 	    tabs.appendChild(new Tab("Detail Transaksi")); 
 	    tabs.appendChild(new Tab("Riwayat"));          
 	    tabboxDetail.appendChild(tabs);       
 	    tabboxDetail.appendChild(tabpanels);  
 	
-	    // Part 3.2: Membuat Tabpanel 1 - Detail Transaksi
+	    // Part 3.2: Tabpanel 1 - Document Details
 	    Tabpanel panelLines = new Tabpanel();
 	    tabpanels.appendChild(panelLines);
 	        
