@@ -235,10 +235,21 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private void init()
 	{
 		org.zkoss.zk.ui.Execution exec = org.zkoss.zk.ui.Executions.getCurrent();
-	    if (exec != null) {
-	        // Stylesheet attached to pade head dinamicly
-	        exec.addPreheadHTML("<link rel=\"stylesheet\" type=\"text/css\" href=\"~./css/wf-style.css\" />");
-		}
+        if (exec != null) {
+        // Encodes the path properly if you are using context paths
+        String cssUrl = exec.encodeURL("/css/wf-style.css"); 
+    
+        // Inject via native JavaScript
+        String js = "var link = document.createElement('link');"
+              + "link.rel = 'stylesheet';"
+              + "link.type = 'text/css';"
+              + "link.href = '" + cssUrl + "';"
+              + "document.getElementsByTagName('head')[0].appendChild(link);";
+              
+         org.zkoss.zk.ui.util.Clients.evalJavaScript(js);
+         }
+
+
 	    // Part 1: West Panel (Approval List)
 	    West westPanel = new West();
 	    westPanel.setSize("320px");
