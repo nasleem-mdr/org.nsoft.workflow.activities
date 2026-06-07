@@ -1,9 +1,7 @@
 # Custom Workflow Activities 
 
-## WFTransactionDetailRenderer
-
-Technical documentation for org.nsoft.workflow.activities especially `WFTransactionDetailRenderer.java`  
-Plugin: `org.nsoft.workflow.activities` | Version: 3.1
+Technical documentation for plugin org.nsoft.workflow.activities especially `WFTransactionDetailRenderer.java`  
+Plugin: `org.nsoft.workflow.activities` | Version: 1.0.0
 
 ---
 
