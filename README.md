@@ -1,7 +1,7 @@
 # Custom Workflow Activities 
 
 Technical documentation for plugin org.nsoft.workflow.activities especially `WFTransactionDetailRenderer.java`  
-Plugin: `org.nsoft.workflow.activities` | Version: 1.0.0
+Plugin: `org.nsoft.workflow.activities` | Version: 1.3.1
 
 ---
 
@@ -325,12 +325,12 @@ A `,` following a `>` is treated as part of the FK chain, not as a candidate sep
 
 ## Changelog
 
-### v3.1 — Bug Fixes
+### v1.3.1 — Bug Fixes
 - **Fix:** Moved the `"-".equals(lineTable)` guard before the `LINK_COL` check in `validateAndWarnConfig()` — previously it triggered an unnecessary warning when `LINE_TABLE="-"` (intentionally disabled).
 - **Fix:** `resolveColumnValue()` now uses `splitColumnDefs()` — previously splitting directly on `","` caused FK chains like `C_BPartner_ID>Name,Description` to be split incorrectly.
 - **Fix:** `renderListhead()` now uses `lstTxLines.appendChild(head)` — previously used `insertBefore()` which was incompatible with the installed ZK version.
 
-### v3.0
+### v1.3.0
 - Added `COL1/COL2/COL3` support with dynamic labels and type-aware formatting.
 - Multi-level FK lookup.
 - Flexible column headers.
