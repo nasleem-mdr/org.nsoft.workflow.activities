@@ -2,7 +2,7 @@
 <scr:component xmlns:scr="http://www.osgi.org/xmlns/scr/v1.1.0" 
                immediate="true" 
                name="org.nsoft.workflow.activities.factory.NSoftFormFactory">
-   <property name="service.ranking" type="Integer" value="10"/>
+   <property name="service.ranking" type="Integer" value="100"/>
    <service>
       <provide interface="org.adempiere.webui.factory.IFormFactory"/>
    </service>
