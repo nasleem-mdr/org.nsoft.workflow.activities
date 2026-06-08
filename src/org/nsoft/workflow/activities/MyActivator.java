@@ -35,7 +35,7 @@ public class MyActivator extends Incremental2PackActivator {
 	@Override
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
-		Extensions.getMappedFormFactory().scan(context, "org.adempiere.webui.apps.wf");
+		Extensions.getMappedFormFactory().scan(context, "org.nsoft.workflow.activities");
 	}
 
 }
