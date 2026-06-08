@@ -5,10 +5,10 @@ import org.adempiere.webui.factory.IFormFactory;
 import org.osgi.service.component.annotations.Component;
 
 @Component(immediate = true, service = IFormFactory.class, 
-           property = {"service.ranking:Integer=10"})
+           property = {"service.ranking:Integer=100"})
 public class NSoftFormFactory extends AnnotationBasedFormFactory {
     @Override
     protected String[] getPackages() {
-        return new String[] {"org.adempiere.webui.apps.wf"};
+        return new String[] {"org.nsoft.workflow.activities"};
     }
 }
