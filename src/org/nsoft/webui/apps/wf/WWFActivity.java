@@ -90,6 +90,14 @@ import org.compiere.model.MQuery;
 import org.zkoss.zk.ui.Execution;
 import org.zkoss.zk.ui.Executions;
 
+import org.osgi.framework.Bundle;
+import org.osgi.framework.FrameworkUtil;
+import java.io.InputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Scanner;
+
 /**
  * Workflow activity form
  * @author hengsin
@@ -235,25 +243,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 	private void init()
 	{
-		org.zkoss.zk.ui.Execution exec = org.zkoss.zk.ui.Executions.getCurrent();
-        if (exec != null) {
-        // Encodes the path properly if you are using context paths
-        String cssUrl = exec.encodeURL(
-	    	"/org.nsoft.workflow.activities/css/wf-style.css"
-		);
-    
-        // Inject via native JavaScript
-        String js = "var link = document.createElement('link');"
-              + "link.rel = 'stylesheet';"
-              + "link.type = 'text/css';"
-              + "link.href = '" + cssUrl + "';"
-              + "document.getElementsByTagName('head')[0].appendChild(link);";
-              
-         org.zkoss.zk.ui.util.Clients.evalJavaScript(js);
-         }
-
-
-	    // Part 1: West Panel (Approval List)
+		//inject css style
+        injectBundleStyle("web/css/wf-style.css");
+        // Part 1: West Panel (Approval List)
 	    West westPanel = new West();
 	    westPanel.setSize("320px");
 	    westPanel.setSplittable(true);
@@ -489,6 +481,32 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    this.setSclass("wf-window-root");
 	}
 	
+	private void injectBundleStyle(String resourcePath) {
+	    Bundle bundle = FrameworkUtil.getBundle(WWFActivity.class);
+	    URL url = bundle.getResource(resourcePath);
+	    if (url == null) {
+	        log.warning("Bundle resource not found: " + resourcePath);
+	        return;
+	    }
+	    try (InputStream is = url.openStream();
+	         Scanner sc = new Scanner(is, StandardCharsets.UTF_8)) {
+	        String css = sc.useDelimiter("\\A").next();
+	        // Escape manual — tidak perlu Gson
+	        String escaped = css
+	            .replace("\\", "\\\\")
+	            .replace("'", "\\'")
+	            .replace("\r\n", "\\n")
+	            .replace("\n", "\\n")
+	            .replace("\r", "\\n");
+	        Clients.evalJavaScript(
+	            "(function(c){var s=document.createElement('style');" +
+	            "s.textContent=c;document.head.appendChild(s);})('"+escaped+"');"
+	        );
+	    } catch (IOException e) {
+	        log.log(java.util.logging.Level.WARNING, "Failed to inject style: " + resourcePath, e);
+	    }
+	}
+	
 	private void executeApprovalDirectly(boolean isApproved) {
 		if (m_activity == null) return;
 
@@ -586,62 +604,55 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 	public int loadActivities()
 	{
-		long start = System.currentTimeMillis();
+	    long start = System.currentTimeMillis();
 
-		int MAX_ACTIVITIES_IN_LIST = MSysConfig.getIntValue(MSysConfig.MAX_ACTIVITIES_IN_LIST, 200, Env.getAD_Client_ID(Env.getCtx()));
+	    int MAX_ACTIVITIES_IN_LIST = MSysConfig.getIntValue(MSysConfig.MAX_ACTIVITIES_IN_LIST, 200, Env.getAD_Client_ID(Env.getCtx()));
 
-		model = new ListModelTable();
+	    model = new ListModelTable();
 
-		int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
-		int AD_Client_ID = Env.getAD_Client_ID(Env.getCtx());
-		Iterator<MWFActivity> it = new Query(Env.getCtx(), MWFActivity.Table_Name, MWFActivity.getWhereUserPendingActivities(), null)
-				.setApplyAccessFilter(true, false)
-				.setParameters(AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_Client_ID)
-				.setOrderBy("AD_WF_Activity.Priority DESC, AD_WF_Activity.Created")
-				.iterate();
+	    int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
+	    int AD_Client_ID = Env.getAD_Client_ID(Env.getCtx());
+	    Iterator<MWFActivity> it = new Query(Env.getCtx(), MWFActivity.Table_Name, MWFActivity.getWhereUserPendingActivities(), null)
+	            .setApplyAccessFilter(true, false)
+	            .setParameters(AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_Client_ID)
+	            .setOrderBy("AD_WF_Activity.Priority DESC, AD_WF_Activity.Created")
+	            .iterate();
 
-		List<MWFActivity> list = new ArrayList<MWFActivity>();
-		while (it.hasNext()) {
-			MWFActivity activity = it.next();
-			list.add (activity);
-			List<Object> rowData = new ArrayList<Object>();
-			rowData.add(activity.getPriority());
-			rowData.add(activity.getNodeName());
-			rowData.add(activity.getSummary());
-			model.add(rowData);
-			if (list.size() > MAX_ACTIVITIES_IN_LIST && MAX_ACTIVITIES_IN_LIST > 0)
-			{
-				log.warning("More than " + MAX_ACTIVITIES_IN_LIST + " Activities - ignored");
-				break;
-			}
-		}
-		m_activities = new MWFActivity[list.size ()];
-		list.toArray (m_activities);
-		
-		if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis()-start) + "ms)");
-		m_index = 0;
+	    List<MWFActivity> list = new ArrayList<MWFActivity>();
+	    while (it.hasNext()) {
+	        MWFActivity activity = it.next();
+	        list.add(activity);
+	        List<Object> rowData = new ArrayList<Object>();
+	        // Gabungkan semua info jadi 1 kolom
+	        String label = activity.getNodeName() + "\n" + activity.getSummary();
+	        rowData.add(label);
+	        model.add(rowData);
+	        if (list.size() > MAX_ACTIVITIES_IN_LIST && MAX_ACTIVITIES_IN_LIST > 0)
+	        {
+	            log.warning("More than " + MAX_ACTIVITIES_IN_LIST + " Activities - ignored");
+	            break;
+	        }
+	    }
+	    m_activities = new MWFActivity[list.size()];
+	    list.toArray(m_activities);
 
-		String[] columns = new String[]{Msg.translate(Env.getCtx(), "Priority"), Msg.translate(Env.getCtx(), "AD_WF_Node_ID"), Msg.translate(Env.getCtx(), "Summary")};
+	    if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis()-start) + "ms)");
+	    m_index = 0;
 
-		WListItemRenderer renderer = new WListItemRenderer(Arrays.asList(columns));
-		ListHeader header = new ListHeader();
-		ZKUpdateUtil.setWidth(header, "60px");
-		renderer.setListHeader(0, header);
-		header = new ListHeader();
-		ZKUpdateUtil.setWidth(header, null);
-		renderer.setListHeader(1, header);
-		header = new ListHeader();
-		ZKUpdateUtil.setWidth(header, null);
-		renderer.setListHeader(2, header);
-		renderer.addTableValueChangeListener(listbox);
-		model.setNoColumns(columns.length);
-		listbox.setModel(model);
-		listbox.setItemRenderer(renderer);
-		listbox.setSizedByContent(false);
-		listbox.repaint();
+	    // Hanya 1 kolom, tanpa header
+	    WListItemRenderer renderer = new WListItemRenderer(Arrays.asList(new String[]{""}));
+	    ListHeader header = new ListHeader();
+	    ZKUpdateUtil.setWidth(header, "100%");
+	    renderer.setListHeader(0, header);
+	    renderer.addTableValueChangeListener(listbox);
+	    model.setNoColumns(1);
+	    listbox.setModel(model);
+	    listbox.setItemRenderer(renderer);
+	    listbox.setSizedByContent(false);
+	    listbox.repaint();
 
-		return m_activities.length;
-	}	
+	    return m_activities.length;
+	}
 
 	private MWFActivity resetDisplay(int selIndex)
 	{
