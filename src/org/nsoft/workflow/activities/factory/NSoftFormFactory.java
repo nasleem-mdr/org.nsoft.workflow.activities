@@ -1,14 +1,25 @@
 package org.nsoft.workflow.activities.factory;
 
-import org.adempiere.webui.factory.AnnotationBasedFormFactory;
 import org.adempiere.webui.factory.IFormFactory;
+import org.adempiere.webui.panel.ADForm;
+import org.compiere.util.CLogger;
 import org.osgi.service.component.annotations.Component;
 
-@Component(immediate = true, service = IFormFactory.class, 
-           property = {"service.ranking:Integer=100"})
-public class NSoftFormFactory extends AnnotationBasedFormFactory {
+@Component(immediate = true, service = IFormFactory.class,
+           property = {"service.ranking:Integer=200"})
+public class NSoftFormFactory implements IFormFactory {
+
+    private static final CLogger log = CLogger.getCLogger(NSoftFormFactory.class);
+
     @Override
-    protected String[] getPackages() {
-        return new String[] {"org.nsoft.workflow.activities"};
+    public ADForm newFormInstance(String formId) {
+        log.warning("=== NSoftFormFactory.newFormInstance() formId=" + formId + " ===");
+        
+        if ("org.nsoft.webui.apps.wf.WFActivity".equals(formId)) {
+            log.warning("=== Membuat WWFActivity dari NSoft plugin ===");
+            return new org.nsoft.webui.apps.wf.WWFActivity();
+        }
+        
+        return null;
     }
 }

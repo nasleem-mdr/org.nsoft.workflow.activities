@@ -12,6 +12,9 @@ Require-Bundle: org.eclipse.core.runtime,
  zkbind,
  zkplus,
  zul
-Import-Package: org.adempiere.webui.apps
- org.osgi.framework
+Import-Package: org.adempiere.webui.apps,
+ org.adempiere.webui.component,
+ org.adempiere.webui.factory,
+ org.osgi.framework,
+ org.osgi.service.component.annotations
 Service-Component: OSGI-INF/*.xml

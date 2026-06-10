@@ -25,6 +25,7 @@ import org.adempiere.plugin.utils.Incremental2PackActivator;
 import org.adempiere.webui.Extensions;
 import org.osgi.framework.BundleContext;
 import org.osgi.service.component.annotations.Component;
+import org.compiere.util.CLogger;
 
 @Component(immediate = true)
 public class MyActivator extends Incremental2PackActivator {
@@ -34,8 +35,18 @@ public class MyActivator extends Incremental2PackActivator {
 
 	@Override
 	public void start(BundleContext context) throws Exception {
-		super.start(context);
-		Extensions.getMappedFormFactory().scan(context, "org.nsoft.workflow.activities");
+	    CLogger.getCLogger(MyActivator.class)
+	        .warning("=== NSoft WFActivity bundle START ==="
+	                + " | bundle=" + context.getBundle().getSymbolicName()
+	                + " | version=" + context.getBundle().getVersion());
+	    super.start(context);
+//	    Extensions.getMappedFormFactory().scan(context, "org.adempiere.webui.apps.wf");
+//	    CLogger.getCLogger(MyActivator.class)
+//	        .warning("=== NSoft WFActivity scan selesai ===");
 	}
 
 }
+
+
+
+

@@ -9,7 +9,7 @@
  *                multi-level FK lookup, flexible column header
  * 
  ******************************************************************************/
-package org.nsoft.workflow.activities;
+package org.nsoft.webui.apps.wf;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;

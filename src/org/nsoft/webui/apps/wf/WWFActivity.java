@@ -11,7 +11,7 @@
  * with this program; if not, write to the Free Software Foundation, Inc.,    *
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA.                     *
  *****************************************************************************/
-package org.nsoft.workflow.activities;
+package org.nsoft.webui.apps.wf;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -70,7 +70,7 @@ import org.zkoss.zk.ui.util.Clients;
 import org.zkoss.zul.Borderlayout;
 import org.zkoss.zul.Center;
 import org.zkoss.zul.Div;
-import org.adempiere.webui.component.FlexHlayout;
+import org.zkoss.zul.Hlayout;
 import org.zkoss.zul.Html;
 import org.zkoss.zul.North;
 import org.zkoss.zul.South;
@@ -159,8 +159,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Tabpanels tabpanels = new Tabpanels();
 	private WFTransactionDetailRenderer txRenderer;
 
-	private FlexHlayout createModernActionButtons() {
-		FlexHlayout buttonLayout = new FlexHlayout();
+	private Hlayout createModernActionButtons() {
+		Hlayout buttonLayout = new Hlayout();
 		buttonLayout.setHflex("1");
 		buttonLayout.setSpacing("15px");
 		buttonLayout.setStyle("margin-top: 20px; padding: 10px 0; justify-content: flex-end;");
@@ -188,7 +188,10 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	public WWFActivity()
 	{
 		super();
-		LayoutUtils.addSclass("workflow-activity-form", this);
+	    System.out.println("$$$$$ NSOFT WWFActivity consturctor allled $$$$$");
+	    CLogger.getCLogger(WWFActivity.class)
+	    	.warning("$$$$$ NSoft WWFActivity LOADED dari plugin org.nsoft $$$$$");
+	    LayoutUtils.addSclass("workflow-activity-form", this);
 	}
 
     protected void initForm()
@@ -222,7 +225,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                 lHdrCol3,       lHdrCol3Title,
                 lHdrCol4,       lHdrCol4Title
         );
-       display(-1);
+		System.out.println("$$$$$ NSOFT initForm() dipanggil $$$$$");
+		display(-1);
+       
     }
 
 	private void setTooltipText(Button btn, String key) {
@@ -410,7 +415,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    fTextMsg.setSclass("wf-textarea-action");
 	    footerApprovalArea.appendChild(msgGroup);
 	
-	    FlexHlayout answerRow = new FlexHlayout();
+	    Hlayout answerRow = new Hlayout();
 	    answerRow.setHflex("1");
 	    answerRow.setValign("middle");
 	    lAnswer.setSclass("wf-field-label wf-margin-right-5");
@@ -429,7 +434,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    lForward.setSclass("wf-field-label");
 	    forwardSection.appendChild(lForward);
 	    
-	    FlexHlayout forwardActions = new FlexHlayout();
+	    Hlayout forwardActions = new Hlayout();
 	    forwardActions.setHflex("1");
 	    forwardActions.setValign("middle");
 	    forwardActions.appendChild(fForward.getComponent());
@@ -441,7 +446,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    
 	    footerApprovalArea.appendChild(forwardSection);
 	    
-	    FlexHlayout actionButtons = createModernActionButtons();
+	    Hlayout actionButtons = createModernActionButtons();
 	    footerApprovalArea.appendChild(actionButtons);
 	
 	    // Part 5: Main layout
@@ -505,4 +510,386 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 			// Picu logic aseli bawaan iDempiere lewat bOK Click event
 			org.zkoss.zk.ui.event.Event clickEvent = new org.zkoss.zk.ui.event.Event(Events.ON_CLICK, bOK);
-			org.zkoss.zk.ui.event
+			org.zkoss.zk.ui.event.Events.sendEvent(bOK, clickEvent);
+			
+		} catch (Exception ex) {
+			log.log(java.util.logging.Level.SEVERE, "Gagal mengeksekusi aksi tombol persetujuan kustom", ex);
+		}
+	}
+	// Helper membuat header dengan rasio lebar persentase fleksibel (hflex)
+    private org.zkoss.zul.Listheader createHeader(String label, String ratio) {
+        Listheader header = new Listheader(label);
+        header.setHflex(ratio); 
+        return header;
+    }
+	
+	@Override
+	public void onEvent(Event event) throws Exception
+	{
+		Component comp = event.getTarget();
+        String eventName = event.getName();
+
+        if(eventName.equals(Events.ON_CLICK))
+        {
+    		if (comp == bZoom)
+    			cmd_zoom();
+    		else if (comp == bRefresh)
+    		{
+    			Clients.showBusy(Msg.getMsg(Env.getCtx(), "Processing"));
+    			Executions.schedule(getDesktop(), e -> {
+    				loadActivities();
+    				Clients.clearBusy();
+    			}, new Event("onRefresh"));
+    		}
+    		else if (comp == bOK)
+    		{
+    			Clients.showBusy(Msg.getMsg(Env.getCtx(), "Processing"));
+    			Events.echoEvent("onOK", this, null);
+    		}
+    		else if (comp == fAnswerButton)
+    			cmd_button();
+        } 
+        else if (Events.ON_SELECT.equals(eventName) && comp == listbox)
+        {
+        	m_index = listbox.getSelectedIndex();
+        	if (m_index >= 0)
+    			display(m_index);
+        }
+		else if ("onOK".equals(eventName))  
+        {
+            onOK();
+    	}
+        else
+        {
+    		super.onEvent(event);
+        }
+	}
+
+	public int getActivitiesCount()
+	{
+		int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
+		int AD_Client_ID = Env.getAD_Client_ID(Env.getCtx());
+		int count = new Query(Env.getCtx(), MWFActivity.Table_Name, MWFActivity.getWhereUserPendingActivities(), null)
+				.setApplyAccessFilter(true, false)
+				.setParameters(AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_Client_ID)
+				.count();
+		return count;
+	}
+
+	public int loadActivities()
+	{
+		long start = System.currentTimeMillis();
+
+		int MAX_ACTIVITIES_IN_LIST = MSysConfig.getIntValue(MSysConfig.MAX_ACTIVITIES_IN_LIST, 200, Env.getAD_Client_ID(Env.getCtx()));
+
+		model = new ListModelTable();
+
+		int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
+		int AD_Client_ID = Env.getAD_Client_ID(Env.getCtx());
+		Iterator<MWFActivity> it = new Query(Env.getCtx(), MWFActivity.Table_Name, MWFActivity.getWhereUserPendingActivities(), null)
+				.setApplyAccessFilter(true, false)
+				.setParameters(AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_Client_ID)
+				.setOrderBy("AD_WF_Activity.Priority DESC, AD_WF_Activity.Created")
+				.iterate();
+
+		List<MWFActivity> list = new ArrayList<MWFActivity>();
+		while (it.hasNext()) {
+			MWFActivity activity = it.next();
+			list.add (activity);
+			List<Object> rowData = new ArrayList<Object>();
+			rowData.add(activity.getPriority());
+			rowData.add(activity.getNodeName());
+			rowData.add(activity.getSummary());
+			model.add(rowData);
+			if (list.size() > MAX_ACTIVITIES_IN_LIST && MAX_ACTIVITIES_IN_LIST > 0)
+			{
+				log.warning("More than " + MAX_ACTIVITIES_IN_LIST + " Activities - ignored");
+				break;
+			}
+		}
+		m_activities = new MWFActivity[list.size ()];
+		list.toArray (m_activities);
+		
+		if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis()-start) + "ms)");
+		m_index = 0;
+
+		String[] columns = new String[]{Msg.translate(Env.getCtx(), "Priority"), Msg.translate(Env.getCtx(), "AD_WF_Node_ID"), Msg.translate(Env.getCtx(), "Summary")};
+
+		WListItemRenderer renderer = new WListItemRenderer(Arrays.asList(columns));
+		ListHeader header = new ListHeader();
+		ZKUpdateUtil.setWidth(header, "60px");
+		renderer.setListHeader(0, header);
+		header = new ListHeader();
+		ZKUpdateUtil.setWidth(header, null);
+		renderer.setListHeader(1, header);
+		header = new ListHeader();
+		ZKUpdateUtil.setWidth(header, null);
+		renderer.setListHeader(2, header);
+		renderer.addTableValueChangeListener(listbox);
+		model.setNoColumns(columns.length);
+		listbox.setModel(model);
+		listbox.setItemRenderer(renderer);
+		listbox.setSizedByContent(false);
+		listbox.repaint();
+
+		return m_activities.length;
+	}	
+
+	private MWFActivity resetDisplay(int selIndex)
+	{
+		fAnswerText.setVisible(false);
+		fAnswerList.setVisible(false);
+		fAnswerButton.setVisible(false);
+		if (ThemeManager.isUseFontIconForImage())
+			fAnswerButton.setIconSclass(Icon.getIconSclass(Icon.WINDOW));
+		else
+			fAnswerButton.setImage(ThemeManager.getThemeResource("images/mWindow.png"));
+		fTextMsg.setReadonly(!(selIndex >= 0));
+		fTextMsg.setValue("");
+		bZoom.setEnabled(selIndex >= 0);
+		bOK.setEnabled(selIndex >= 0);
+		fForward.setValue(null);
+		fForward.setReadWrite(selIndex >= 0);
+		
+		statusBar.setStatusDB(String.valueOf(selIndex+1) + "/" + m_activities.length);
+		m_activity = null;
+		m_column = null;
+		if (m_activities.length > 0)
+		{
+			if (selIndex >= 0 && selIndex < m_activities.length)
+				m_activity = m_activities[selIndex];
+		}
+		
+		if (m_activity == null)
+		{
+			fNode.setText ("");
+			fDescription.setText ("");
+			fHelp.setText ("");
+			fHistory.setContent(HISTORY_DIV_START_TAG + "&nbsp;</div>");
+			statusBar.setStatusDB("0/" + m_activities.length);
+			statusBar.setStatusLine(Msg.getMsg(Env.getCtx(), "WFNoActivities"));
+		}
+		return m_activity;
+	}	
+
+	public void display (int index)
+	{
+		if (log.isLoggable(Level.FINE)) log.fine("Index=" + index);
+		m_activity = resetDisplay(index);
+		if (m_activity == null)
+		{
+			txRenderer.render(null);
+			return;
+		}
+
+		txRenderer.render(m_activity);
+
+		fNode.setText (m_activity.getNodeName());
+		fDescription.setValue (m_activity.getNodeDescription());
+		fHelp.setValue (m_activity.getNodeHelp());
+		fHistory.setContent (HISTORY_DIV_START_TAG+m_activity.getHistoryHTML()+"</div>");
+
+		MWFNode node = m_activity.getNode();
+		if (MWFNode.ACTION_UserChoice.equals(node.getAction()))
+		{
+			if (m_column == null)
+				m_column = node.getColumn();
+			if (m_column != null && m_column.get_ID() != 0)
+			{
+				fAnswerList.removeAllItems();
+				int dt = m_column.getAD_Reference_ID();
+				if (dt == DisplayType.YesNo)
+				{
+					ValueNamePair[] values = MRefList.getList(Env.getCtx(), 319, false);		
+					for(int i = 0; i < values.length; i++)
+					{
+						fAnswerList.appendItem(values[i].getName(), values[i].getValue());
+					}
+					fAnswerList.setVisible(true);
+				}
+				else if (DisplayType.isList(dt))
+				{
+					ValueNamePair[] values = MRefList.getList(Env.getCtx(), m_column.getAD_Reference_Value_ID(), false);
+					for(int i = 0; i < values.length; i++)
+					{
+						fAnswerList.appendItem(values[i].getName(), values[i].getValue());
+					}
+					fAnswerList.setVisible(true);
+				}
+				else	
+				{
+					fAnswerText.setText ("");
+					fAnswerText.setVisible(true);
+				}
+			}
+		}
+		else if (MWFNode.ACTION_UserWindow.equals(node.getAction())
+			|| MWFNode.ACTION_UserForm.equals(node.getAction())
+			|| MWFNode.ACTION_UserInfo.equals(node.getAction()))
+		{
+			fAnswerButton.setLabel(node.getName());
+			fAnswerButton.setTooltiptext(node.getDescription());
+			fAnswerButton.setVisible(true);
+		}
+		else
+			log.log(Level.SEVERE, "Unknown Node Action: " + node.getAction());
+
+		statusBar.setStatusDB((m_index+1) + "/" + m_activities.length);
+		statusBar.setStatusLine(Msg.getMsg(Env.getCtx(), "WFActivities"));
+	}	
+
+	private void cmd_zoom()
+	{
+		if (log.isLoggable(Level.CONFIG)) log.config("Activity=" + m_activity);
+		if (m_activity == null)
+			return;
+		AEnv.zoom(m_activity.getAD_Table_ID(), m_activity.getRecord_ID());
+	}	
+
+	private void cmd_button()
+	{
+		if (log.isLoggable(Level.CONFIG)) log.config("Activity=" + m_activity);
+		if (m_activity == null)
+			return;
+		
+		MWFNode node = m_activity.getNode();
+		if (MWFNode.ACTION_UserWindow.equals(node.getAction()))
+		{
+			int AD_Window_ID = node.getAD_Window_ID();		
+			String ColumnName = m_activity.getPO().get_TableName() + "_ID";
+			int Record_ID = m_activity.getRecord_ID();
+			//MQuery query = new MQuery(ColumnName, "=", Record_ID);
+			MQuery query = MQuery.getEqualQuery(ColumnName, Record_ID);
+			boolean IsSOTrx = m_activity.isSOTrx();
+			
+			if (log.isLoggable(Level.INFO))
+				log.info("Zoom to AD_Window_ID=" + AD_Window_ID + " - " + query + " (IsSOTrx=" + IsSOTrx + ")");
+
+			AEnv.zoom(AD_Window_ID, query);
+		}
+		else if (MWFNode.ACTION_UserForm.equals(node.getAction()))
+		{
+			int AD_Form_ID = node.getAD_Form_ID();
+
+			ADForm form = ADForm.openForm(AD_Form_ID);
+			form.setAttribute(Window.MODE_KEY, form.getWindowMode());
+			AEnv.showWindow(form);
+		}else if (MWFNode.ACTION_UserInfo.equals(node.getAction())){
+			SessionManager.getAppDesktop().openInfo(node.getAD_InfoWindow_ID());
+		}
+		else
+			log.log(Level.SEVERE, "No User Action:" + node.getAction());
+	}	
+
+	public void onOK()
+	{
+		if (log.isLoggable(Level.CONFIG)) log.config("Activity=" + m_activity);
+		if (m_activity == null)
+		{
+			Clients.clearBusy();
+			return;
+		}
+		int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
+		String textMsg = fTextMsg.getValue();
+		MWFNode node = m_activity.getNode();
+		Object forward = fForward.getValue();
+
+		Trx trx = null;
+		try {
+			trx = Trx.get(Trx.createTrxName("FWFA"), true);
+			trx.setDisplayName(getClass().getName()+"_onOK");
+			m_activity.set_TrxName(trx.getTrxName());
+
+			if (forward != null)
+			{
+				if (log.isLoggable(Level.CONFIG)) log.config("Forward to " + forward);
+				int fw = ((Integer)forward).intValue();
+				if (fw == AD_User_ID || fw == 0)
+				{
+					log.log(Level.SEVERE, "Forward User=" + fw);
+					trx.rollback();
+					trx.close();
+					return;
+				}
+				if (!m_activity.forwardTo(fw, textMsg))
+				{
+					Dialog.error(m_WindowNo, "CannotForward");
+					trx.rollback();
+					trx.close();
+					return;
+				}
+			}
+			else if (MWFNode.ACTION_UserChoice.equals(node.getAction()))
+			{
+				if (m_column == null)
+					m_column = node.getColumn();
+				
+				int dt = m_column.getAD_Reference_ID();
+				String value = fAnswerText.getText();
+				if (dt == DisplayType.YesNo || DisplayType.isList(dt))
+				{
+					ListItem li = fAnswerList.getSelectedItem();
+					if(li != null) value = li.getValue().toString();
+				}
+				if (value == null || value.length() == 0)
+				{
+					Dialog.error(m_WindowNo, "FillMandatory", Msg.getMsg(Env.getCtx(), "Answer"));
+					trx.rollback();
+					trx.close();
+					return;
+				}
+				
+				if (log.isLoggable(Level.CONFIG)) log.config("Answer=" + value + " - " + textMsg);
+				try
+				{
+					m_activity.setUserChoice(AD_User_ID, value, dt, textMsg);
+					MWFProcess wfpr = new MWFProcess(m_activity.getCtx(), m_activity.getAD_WF_Process_ID(), m_activity.get_TrxName());
+					wfpr.checkCloseActivities(m_activity.get_TrxName());
+					
+					if (!Util.isEmpty(m_activity.getProcessMsg(), true))
+						Dialog.error(m_WindowNo, m_activity.getProcessMsg());
+				}
+				catch (Exception e)
+				{
+					log.log(Level.SEVERE, node.getName(), e);
+					Dialog.error(m_WindowNo, "Error", e.getLocalizedMessage() != null ? e.getLocalizedMessage() : e.getMessage());
+					trx.rollback();
+					trx.close();
+					return;
+				}
+			}
+			else
+			{
+				if (log.isLoggable(Level.CONFIG)) log.config("Action=" + node.getAction() + " - " + textMsg);
+				try
+				{
+					m_activity.setUserConfirmation(AD_User_ID, textMsg);
+					MWFProcess wfpr = new MWFProcess(m_activity.getCtx(), m_activity.getAD_WF_Process_ID(), m_activity.get_TrxName());
+					wfpr.checkCloseActivities(m_activity.get_TrxName());
+					
+					if (!Util.isEmpty(m_activity.getProcessMsg(), true))
+						Dialog.error(m_WindowNo, m_activity.getProcessMsg());
+				}
+				catch (Exception e)
+				{
+					log.log(Level.SEVERE, node.getName(), e);
+					Dialog.error(m_WindowNo, "Error", e.toString());
+					trx.rollback();
+					trx.close();
+					return;
+				}
+			}
+
+			trx.commit();
+		}
+		finally
+		{
+			Clients.clearBusy();
+			if (trx != null)
+				trx.close();
+		}
+
+		loadActivities();
+		display(-1);
+	}	
+}
