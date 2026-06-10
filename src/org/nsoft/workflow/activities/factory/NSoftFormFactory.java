@@ -13,11 +13,9 @@ public class NSoftFormFactory implements IFormFactory {
 
     @Override
     public ADForm newFormInstance(String formId) {
-        log.warning("=== NSoftFormFactory.newFormInstance() formId=" + formId + " ===");
-        
+       
         if ("org.nsoft.webui.apps.wf.WFActivity".equals(formId)) {
-            log.warning("=== Membuat WWFActivity dari NSoft plugin ===");
-            return new org.nsoft.webui.apps.wf.WWFActivity();
+             return new org.nsoft.webui.apps.wf.WWFActivity();
         }
         
         return null;

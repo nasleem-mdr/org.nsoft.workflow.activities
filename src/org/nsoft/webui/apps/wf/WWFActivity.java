@@ -188,9 +188,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	public WWFActivity()
 	{
 		super();
-	    System.out.println("$$$$$ NSOFT WWFActivity consturctor allled $$$$$");
-	    CLogger.getCLogger(WWFActivity.class)
-	    	.warning("$$$$$ NSoft WWFActivity LOADED dari plugin org.nsoft $$$$$");
 	    LayoutUtils.addSclass("workflow-activity-form", this);
 	}
 
@@ -447,9 +444,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    forwardSection.appendChild(forwardActions);
 	    
 	    footerApprovalArea.appendChild(forwardSection);
-	    
-	    Hlayout actionButtons = createModernActionButtons();
-	   	
+	       	
 	    // Part 5: Main layout
 	    Borderlayout mainChatLayout = new Borderlayout();
 	    ZKUpdateUtil.setWidth(mainChatLayout, "100%");
@@ -591,113 +586,62 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 	public int loadActivities()
 	{
-	    long start = System.currentTimeMillis();
-	    int MAX_ACTIVITIES_IN_LIST = MSysConfig.getIntValue(
-	            MSysConfig.MAX_ACTIVITIES_IN_LIST, 200, Env.getAD_Client_ID(Env.getCtx()));
-	    
-	    model = new ListModelTable();
-	    int AD_User_ID    = Env.getAD_User_ID(Env.getCtx());
-	    int AD_Client_ID  = Env.getAD_Client_ID(Env.getCtx());
-	    
-	    Iterator<MWFActivity> it = new Query(Env.getCtx(), MWFActivity.Table_Name,
-	            MWFActivity.getWhereUserPendingActivities(), null)
-	            .setApplyAccessFilter(true, false)
-	            .setParameters(AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_Client_ID)
-	            .setOrderBy("AD_WF_Activity.Priority DESC, AD_WF_Activity.Created")
-	            .iterate();
-	
-	    List<MWFActivity> list = new ArrayList<>();
-	    while (it.hasNext()) {
-	        MWFActivity activity = it.next();
-	        list.add(activity);
-	
-	        List<Object> rowData = new ArrayList<>();
-	        rowData.add(activity.getPriority());   // index 0
-	        rowData.add(activity.getNodeName());   // index 1
-	        rowData.add(activity.getSummary());    // index 2
-	        model.add(rowData);
-	
-	        if (list.size() > MAX_ACTIVITIES_IN_LIST && MAX_ACTIVITIES_IN_LIST > 0) {
-	            log.warning("More than " + MAX_ACTIVITIES_IN_LIST + " Activities - ignored");
-	            break;
-	        }
-	    }
-	
-	    m_activities = new MWFActivity[list.size()];
-	    list.toArray(m_activities);
-	
-	    if (log.isLoggable(Level.FINE))
-	        log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis() - start) + "ms)");
-	
-	    m_index = 0;
-	    model.setNoColumns(3);
-	
-	    // =========================================================================
-	    // Custom Card Renderer — tampilan card per item
-	    // =========================================================================
-	    listbox.setItemRenderer((org.zkoss.zul.ListitemRenderer<List<Object>>) (item, data, index) -> {
-	
-	        // Ambil data
-	        String priority = data.get(0) != null ? data.get(0).toString() : "0";
-	        String nodeName = data.get(1) != null ? data.get(1).toString() : "";
-	        String summary  = data.get(2) != null ? data.get(2).toString() : "";
-	
-	        // Split summary — iDempiere format: "Order 80017:\nGardenUser Standard"
-	        // Baris 1 = doc info, Baris 2 = user/bp
-	        String[] summaryParts = summary.split("\n", 2);
-	        String docInfo = summaryParts.length > 0 ? summaryParts[0].trim() : summary;
-	        String bpInfo  = summaryParts.length > 1 ? summaryParts[1].trim() : "";
-	
-	        // Satu Listcell yang isi seluruh card
-	        org.zkoss.zul.Listcell cell = new org.zkoss.zul.Listcell();
-	        cell.setStyle("padding: 0; border: none;");
-	
-	        // Card container
-	        org.zkoss.zul.Vlayout card = new org.zkoss.zul.Vlayout();
-	        card.setSclass("wf-approval-card");
-	
-	        // Priority badge
-	        org.adempiere.webui.component.Label lPriority =
-	                new org.adempiere.webui.component.Label("Priority: " + priority);
-	        lPriority.setSclass("wf-card-priority");
-	
-	        // Node name
-	        org.adempiere.webui.component.Label lNode =
-	                new org.adempiere.webui.component.Label(nodeName);
-	        lNode.setSclass("wf-card-node");
-	
-	        // Doc info (contoh: "Order 80017:")
-	        org.adempiere.webui.component.Label lDocInfo =
-	                new org.adempiere.webui.component.Label(docInfo);
-	        lDocInfo.setSclass("wf-card-docno");
-	
-	        card.appendChild(lPriority);
-	        card.appendChild(lNode);
-	        card.appendChild(lDocInfo);
-	
-	        // BP info jika ada
-	        if (!bpInfo.isEmpty()) {
-	            org.adempiere.webui.component.Label lBP =
-	                    new org.adempiere.webui.component.Label(bpInfo);
-	            lBP.setSclass("wf-card-bp");
-	            card.appendChild(lBP);
-	        }
-	
-	        cell.appendChild(card);
-	        item.appendChild(cell);
-	        item.setSclass("wf-approval-item");
-	    });
-	
-	    // Hapus header — card style tidak perlu header kolom
-	    if (listbox.getListhead() != null)
-	        listbox.getListhead().detach();
-	
-	    listbox.setModel(model);
-	    listbox.setSizedByContent(false);
-	    listbox.repaint();
-	
-	    return m_activities.length;
-	}
+		long start = System.currentTimeMillis();
+
+		int MAX_ACTIVITIES_IN_LIST = MSysConfig.getIntValue(MSysConfig.MAX_ACTIVITIES_IN_LIST, 200, Env.getAD_Client_ID(Env.getCtx()));
+
+		model = new ListModelTable();
+
+		int AD_User_ID = Env.getAD_User_ID(Env.getCtx());
+		int AD_Client_ID = Env.getAD_Client_ID(Env.getCtx());
+		Iterator<MWFActivity> it = new Query(Env.getCtx(), MWFActivity.Table_Name, MWFActivity.getWhereUserPendingActivities(), null)
+				.setApplyAccessFilter(true, false)
+				.setParameters(AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_Client_ID)
+				.setOrderBy("AD_WF_Activity.Priority DESC, AD_WF_Activity.Created")
+				.iterate();
+
+		List<MWFActivity> list = new ArrayList<MWFActivity>();
+		while (it.hasNext()) {
+			MWFActivity activity = it.next();
+			list.add (activity);
+			List<Object> rowData = new ArrayList<Object>();
+			rowData.add(activity.getPriority());
+			rowData.add(activity.getNodeName());
+			rowData.add(activity.getSummary());
+			model.add(rowData);
+			if (list.size() > MAX_ACTIVITIES_IN_LIST && MAX_ACTIVITIES_IN_LIST > 0)
+			{
+				log.warning("More than " + MAX_ACTIVITIES_IN_LIST + " Activities - ignored");
+				break;
+			}
+		}
+		m_activities = new MWFActivity[list.size ()];
+		list.toArray (m_activities);
+		
+		if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis()-start) + "ms)");
+		m_index = 0;
+
+		String[] columns = new String[]{Msg.translate(Env.getCtx(), "Priority"), Msg.translate(Env.getCtx(), "AD_WF_Node_ID"), Msg.translate(Env.getCtx(), "Summary")};
+
+		WListItemRenderer renderer = new WListItemRenderer(Arrays.asList(columns));
+		ListHeader header = new ListHeader();
+		ZKUpdateUtil.setWidth(header, "60px");
+		renderer.setListHeader(0, header);
+		header = new ListHeader();
+		ZKUpdateUtil.setWidth(header, null);
+		renderer.setListHeader(1, header);
+		header = new ListHeader();
+		ZKUpdateUtil.setWidth(header, null);
+		renderer.setListHeader(2, header);
+		renderer.addTableValueChangeListener(listbox);
+		model.setNoColumns(columns.length);
+		listbox.setModel(model);
+		listbox.setItemRenderer(renderer);
+		listbox.setSizedByContent(false);
+		listbox.repaint();
+
+		return m_activities.length;
+	}	
 
 	private MWFActivity resetDisplay(int selIndex)
 	{
