@@ -23,7 +23,7 @@ Plugin: `org.nsoft.workflow.activities` | Version: 1.3.1
 ---
 
 ## Overview
-
+'WWFActivity' is customize Workflow Activities from core, please change annotation in Form->[search] "Worflow Activites"->Class=org.nsoft.webui.apps.wf.WFActifity
 `WFTransactionDetailRenderer` is a renderer class that displays **transaction document details** (header + line items) directly inside the iDempiere workflow approval panel (`WWFActivity` form).
 
 This class is designed using a **SysConfig-driven + Generic PO** approach, enabling it to display details from any document table **without importing specific model classes** — configuration in the Application Dictionary (SysConfig) is all that is needed.
