@@ -97,7 +97,137 @@
     background: transparent !important;
     border-bottom: 2px solid #e2e8f0 !important;
 }
+/* =============================================================================
+   APPROVAL LIST — CARD STYLE
+   Tambahkan ke wf-style.css
+   ============================================================================= */
 
+/* Hapus border dan styling default listbox iDempiere */
+.wf-approval-listbox .z-listbox-body {
+    border: none !important;
+}
+
+.wf-approval-listbox .z-listhead {
+    display: none !important; /* sembunyikan header kolom */
+}
+
+/* Item card */
+.wf-approval-item {
+    border-bottom: 1px solid #e2e8f0 !important;
+    border-left: 3px solid transparent !important;
+    cursor: pointer !important;
+    transition: background 0.12s, border-left-color 0.12s !important;
+}
+
+.wf-approval-item:hover {
+    background: #f0f7ff !important;
+    border-left-color: #93c5fd !important;
+}
+
+.wf-approval-item.z-listitem-selected,
+.wf-approval-item:focus {
+    background: #eff6ff !important;
+    border-left: 3px solid #2563eb !important;
+}
+
+/* Card container dalam item */
+.wf-approval-card {
+    padding: 10px 12px !important;
+    width: 100% !important;
+}
+
+/* Priority badge */
+.wf-card-priority {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    display: block !important;
+    margin-bottom: 3px !important;
+}
+
+/* Node name */
+.wf-card-node {
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    color: #1e293b !important;
+    display: block !important;
+    margin-bottom: 3px !important;
+}
+
+/* Doc No / Summary baris 1 */
+.wf-card-docno {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #2563eb !important;
+    display: block !important;
+    margin-bottom: 2px !important;
+}
+
+/* BP / User — summary baris 2 */
+.wf-card-bp {
+    font-size: 11px !important;
+    color: #64748b !important;
+    display: block !important;
+}
+
+/* =============================================================================
+   FIX TOMBOL TERPOTONG — Center scroll + South selalu visible
+   ============================================================================= */
+
+/* Center panel harus scroll */
+.wf-center-panel > div {
+    overflow-y: auto !important;
+    height: 100% !important;
+}
+
+/* South panel selalu terlihat di bawah */
+.wf-south-panel {
+    background: #ffffff !important;
+    border-top: 2px solid #e2e8f0 !important;
+    padding: 10px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+/* =============================================================================
+   TOMBOL APPROVE / REJECT — pindah ke South
+   ============================================================================= */
+.wf-btn-approve {
+    background-color: #16a34a !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 24px !important;
+    cursor: pointer !important;
+    min-width: 120px !important;
+    transition: background 0.15s !important;
+}
+
+.wf-btn-approve:hover {
+    background-color: #15803d !important;
+}
+
+.wf-btn-reject {
+    background-color: #dc2626 !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 13px !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 8px 24px !important;
+    cursor: pointer !important;
+    min-width: 120px !important;
+    transition: background 0.15s !important;
+}
+
+.wf-btn-reject:hover {
+    background-color: #b91c1c !important;
+}
 /* Margin/Padding Utility Ringan */
 .wf-margin-top-10 { margin-top: 10px !important; }
 .wf-margin-right-5 { margin-right: 5px !important; }
