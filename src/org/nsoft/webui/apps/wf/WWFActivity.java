@@ -241,7 +241,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		org.zkoss.zk.ui.Execution exec = org.zkoss.zk.ui.Executions.getCurrent();
         if (exec != null) {
         // Encodes the path properly if you are using context paths
-        String cssUrl = exec.encodeURL("/css/wf-style.css"); 
+        String cssUrl = exec.encodeURL(
+	    	"/org.nsoft.workflow.activities/css/wf-style.css"
+		);
     
         // Inject via native JavaScript
         String js = "var link = document.createElement('link');"
