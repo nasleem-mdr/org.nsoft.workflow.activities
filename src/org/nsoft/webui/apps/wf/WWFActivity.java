@@ -166,6 +166,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Tabbox tabboxDetail = new Tabbox();
 	private Tabpanels tabpanels = new Tabpanels();
 	private WFTransactionDetailRenderer txRenderer;
+	private West westPanel = new West();
 
 	private Hlayout createModernActionButtons() {
 		Hlayout buttonLayout = new Hlayout();
@@ -246,7 +247,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		//inject css style
         injectBundleStyle("web/css/wf-style.css");
         // Part 1: West Panel (Approval List)
-	    West westPanel = new West();
+	    westPanel = new West();
 	    westPanel.setSize("320px");
 	    westPanel.setSplittable(true);
 	    westPanel.setCollapsible(true);
@@ -317,54 +318,53 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    grpTxDetails.setHflex("1");
 	    grpTxDetails.setVisible(true); 
 	    grpTxDetails.setSclass("wf-groupbox-clean"); 
-		
-		Grid headerGrid = new Grid();
-	    headerGrid.setSclass("wf-grid-clean");
-	 
-	    // 3 kolom: [title] [value] [spacer] — pair kiri dan kanan per baris
-	    Columns headerCols = new Columns();
-	    Column cTitle1 = new Column(); cTitle1.setHflex("1");
-	    Column cValue1 = new Column(); cValue1.setHflex("2");
-	    Column cSpacer = new Column(); cSpacer.setWidth("20px");
-	    Column cTitle2 = new Column(); cTitle2.setHflex("1");
-	    Column cValue2 = new Column(); cValue2.setHflex("2");
-	    headerCols.appendChild(cTitle1);
-	    headerCols.appendChild(cValue1);
-	    headerCols.appendChild(cSpacer);
-	    headerCols.appendChild(cTitle2);
-	    headerCols.appendChild(cValue2);
-	    headerGrid.appendChild(headerCols);
-	 
-		Rows headerRows = new Rows();
-	 
-	    // Baris 1: [Col1 title + value] | [Col2 title + value]
-	    Row hRow1 = new Row();
-	    lHdrCol1Title.setSclass("wf-field-label");
-	    lHdrCol1.setSclass("wf-field-value");
-	    lHdrCol2Title.setSclass("wf-field-label");
-	    lHdrCol2.setSclass("wf-field-value");
-	    hRow1.appendChild(lHdrCol1Title);
-	    hRow1.appendChild(lHdrCol1);
-	    hRow1.appendChild(new Label()); // spacer
-	    hRow1.appendChild(lHdrCol2Title);
-	    hRow1.appendChild(lHdrCol2);
-	    headerRows.appendChild(hRow1);
-	 
-	    // Baris 2: [Col3 title + value] | [Col4 title + value]
-	    Row hRow2 = new Row();
-	    lHdrCol3Title.setSclass("wf-field-label");
-	    lHdrCol3.setSclass("wf-field-value");
-	    lHdrCol4Title.setSclass("wf-field-label");
-	    lHdrCol4.setSclass("wf-field-value wf-value-numeric");
-	    hRow2.appendChild(lHdrCol3Title);
-	    hRow2.appendChild(lHdrCol3);
-	    hRow2.appendChild(new Label()); // spacer
-	    hRow2.appendChild(lHdrCol4Title);
-	    hRow2.appendChild(lHdrCol4);
-	    headerRows.appendChild(hRow2);
-	 
-	    headerGrid.appendChild(headerRows);
-	    grpTxDetails.appendChild(headerGrid);
+	
+		 Vlayout headerInfoLayout = new Vlayout();
+		 headerInfoLayout.setHflex("1");
+		 headerInfoLayout.setSpacing("4px");
+		 headerInfoLayout.setSclass("wf-header-info");
+	
+		 // Baris 1: No. Dokumen
+		 Hlayout row1 = new Hlayout();
+		 row1.setHflex("1");
+		 row1.setSpacing("6px");
+		 lHdrCol1Title.setSclass("wf-field-label wf-label-min");
+		 lHdrCol1.setSclass("wf-field-value");
+		 row1.appendChild(lHdrCol1Title);
+		 row1.appendChild(lHdrCol1);
+		 headerInfoLayout.appendChild(row1);
+	
+		 // Baris 2: Business Partner
+		 Hlayout row2 = new Hlayout();
+		 row2.setHflex("1");
+		 row2.setSpacing("6px");
+		 lHdrCol2Title.setSclass("wf-field-label wf-label-min");
+		 lHdrCol2.setSclass("wf-field-value");
+		 row2.appendChild(lHdrCol2Title);
+		 row2.appendChild(lHdrCol2);
+		 headerInfoLayout.appendChild(row2);
+	
+		 // Baris 3: Date
+		 Hlayout row3 = new Hlayout();
+		 row3.setHflex("1");
+		 row3.setSpacing("6px");
+		 lHdrCol3Title.setSclass("wf-field-label wf-label-min");
+		 lHdrCol3.setSclass("wf-field-value");
+		 row3.appendChild(lHdrCol3Title);
+		 row3.appendChild(lHdrCol3);
+		 headerInfoLayout.appendChild(row3);
+	
+		 // Baris 4: Total
+		 Hlayout row4 = new Hlayout();
+		 row4.setHflex("1");
+		 row4.setSpacing("6px");
+		 lHdrCol4Title.setSclass("wf-field-label wf-label-min");
+		 lHdrCol4.setSclass("wf-field-value wf-value-numeric");
+		 row4.appendChild(lHdrCol4Title);
+		 row4.appendChild(lHdrCol4);
+		 headerInfoLayout.appendChild(row4);
+	
+		 grpTxDetails.appendChild(headerInfoLayout);
 		
 	    lstTxLines.setHflex("1");
 	    lstTxLines.setSpan(true);
@@ -508,39 +508,39 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	}
 	
 	private void executeApprovalDirectly(boolean isApproved) {
-		if (m_activity == null) return;
+	    if (m_activity == null) return;
 
-		try {
-			if (fAnswerList.isVisible() && fAnswerList.getItemCount() > 0) {
-				// Ambil value dinamis "Y"/"N" alih-alih mengandalkan Indexing kaku (0 atau 1)
-				String targetValue = isApproved ? "Y" : "N";
-				boolean itemFound = false;
-				
-				for (int i = 0; i < fAnswerList.getItemCount(); i++) {
-					Listitem li = fAnswerList.getItemAtIndex(i);
-					if (targetValue.equalsIgnoreCase(li.getValue())) {
-						fAnswerList.setSelectedIndex(i);
-						itemFound = true;
-						break;
-					}
-				}
-				
-				// Fallback safety net jika value referensi kustom di-setting bukan Y/N
-				if (!itemFound) {
-					fAnswerList.setSelectedIndex(isApproved ? 0 : 1);
-				}
-				
-			} else if (fAnswerText.isVisible()) {
-				fAnswerText.setText(isApproved ? "Approved" : "Rejected");
-			}
+	    try {
+	        if (fAnswerList.isVisible() && fAnswerList.getItemCount() > 0) {
+	            String targetValue = isApproved ? "Y" : "N";
+	            boolean itemFound = false;
+	            
+	            for (int i = 0; i < fAnswerList.getItemCount(); i++) {
+	                Listitem li = fAnswerList.getItemAtIndex(i);
+	                if (targetValue.equalsIgnoreCase(li.getValue())) {
+	                    fAnswerList.setSelectedIndex(i);
+	                    itemFound = true;
+	                    break;
+	                }
+	            }
+	            
+	            if (!itemFound) {
+	                fAnswerList.setSelectedIndex(isApproved ? 0 : 1);
+	            }
+	            
+	        } else if (fAnswerText.isVisible()) {
+	            fAnswerText.setText(isApproved ? "Approved" : "Rejected");
+	        }
 
-			// Picu logic aseli bawaan iDempiere lewat bOK Click event
-			org.zkoss.zk.ui.event.Event clickEvent = new org.zkoss.zk.ui.event.Event(Events.ON_CLICK, bOK);
-			org.zkoss.zk.ui.event.Events.sendEvent(bOK, clickEvent);
-			
-		} catch (Exception ex) {
-			log.log(java.util.logging.Level.SEVERE, "Gagal mengeksekusi aksi tombol persetujuan kustom", ex);
-		}
+	        // Expand west panel kembali setelah aksi
+	        expandWestPanel();
+
+	        org.zkoss.zk.ui.event.Event clickEvent = new org.zkoss.zk.ui.event.Event(Events.ON_CLICK, bOK);
+	        org.zkoss.zk.ui.event.Events.sendEvent(bOK, clickEvent);
+	        
+	    } catch (Exception ex) {
+	        log.log(java.util.logging.Level.SEVERE, "Gagal mengeksekusi aksi tombol persetujuan kustom", ex);
+	    }
 	}
 	// Helper membuat header dengan rasio lebar persentase fleksibel (hflex)
     private org.zkoss.zul.Listheader createHeader(String label, String ratio) {
@@ -548,7 +548,33 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         header.setHflex(ratio); 
         return header;
     }
-	
+    private void collapseWestPanel() {
+        westPanel.setOpen(false);
+        Clients.evalJavaScript(
+            "(function(){" +
+            "  var west = document.querySelector('.wf-west-panel');" +
+            "  if(!west) return;" +
+            "  west.style.display = 'none';" +
+            "  var splitter = west.nextElementSibling;" +
+            "  if(splitter && splitter.className.indexOf('splitter') >= 0)" +
+            "    splitter.style.display = 'none';" +
+            "})();"
+        );
+    }
+
+    private void expandWestPanel() {
+        westPanel.setOpen(true);
+        Clients.evalJavaScript(
+            "(function(){" +
+            "  var west = document.querySelector('.wf-west-panel');" +
+            "  if(!west) return;" +
+            "  west.style.display = '';" +
+            "  var splitter = west.nextElementSibling;" +
+            "  if(splitter && splitter.className.indexOf('splitter') >= 0)" +
+            "    splitter.style.display = '';" +
+            "})();"
+        );
+    }
 	@Override
 	public void onEvent(Event event) throws Exception
 	{
@@ -574,21 +600,23 @@ public class WWFActivity extends ADForm implements EventListener<Event>
     		}
     		else if (comp == fAnswerButton)
     			cmd_button();
-        } 
-        else if (Events.ON_SELECT.equals(eventName) && comp == listbox)
-        {
-        	m_index = listbox.getSelectedIndex();
-        	if (m_index >= 0)
-    			display(m_index);
-        }
-		else if ("onOK".equals(eventName))  
-        {
-            onOK();
-    	}
-        else
-        {
-    		super.onEvent(event);
-        }
+	        } 
+	        else if (Events.ON_SELECT.equals(eventName) && comp == listbox)
+	        {
+	            m_index = listbox.getSelectedIndex();
+	            if (m_index >= 0) {
+	                display(m_index);
+	                collapseWestPanel();
+	            }
+	        }
+			else if ("onOK".equals(eventName))  
+	        {
+	            onOK();
+	    	}
+	        else
+	        {
+	    		super.onEvent(event);
+	        }
 	}
 
 	public int getActivitiesCount()

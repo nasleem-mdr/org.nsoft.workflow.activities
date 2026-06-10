@@ -278,6 +278,22 @@
     min-width: 120px !important;
     transition: background 0.15s !important;
 }
+.wf-label-min {
+    min-width: 110px;
+    font-weight: 600;
+    color: #555;
+}
+
+.wf-header-info {
+    padding: 8px 4px;
+}
+
+/* Mobile: west panel collapsed button tetap visible */
+@media (max-width: 768px) {
+    .wf-west-panel {
+        width: 100% !important;
+    }
+}
 
 .wf-btn-reject:hover {
     background-color: #b91c1c !important;
@@ -287,6 +303,18 @@
 .wf-margin-right-5 { margin-right: 5px !important; }
 .wf-min-height-40 { min-height: 40px !important; }
 /* Responsive Breakpoint untuk Mobile (Smartphone) */
+@media (max-width: 768px) {
+    .wf-west-panel {
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    /* Saat collapsed di mobile, sembunyikan sepenuhnya */
+    .z-west-collapsed .wf-west-panel {
+        display: none !important;
+    }
+}
+
 @media screen and (max-width: 768px) {
     
     /* 1. Paksa Layout Utama Menjadi Satu Kolom Vertikal */
