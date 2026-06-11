@@ -167,6 +167,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Tabpanels tabpanels = new Tabpanels();
 	private WFTransactionDetailRenderer txRenderer;
 	private West westPanel = new West();
+	private Button bBackToList = new Button();
 
 	private Hlayout createModernActionButtons() {
 		Hlayout buttonLayout = new Hlayout();
@@ -260,25 +261,36 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    westPanel.appendChild(listbox);
 	    listbox.addEventListener(Events.ON_SELECT, this);
 	
-	    // Part 2: Center Panel - Approval Node
+	 // Part 2: Center Panel - Approval Node
 	    Vlayout nodeApprovalArea = new Vlayout();
 	    nodeApprovalArea.setHflex("1");
 	    nodeApprovalArea.setSpacing("8px");
-	    nodeApprovalArea.setSclass("wf-card-container"); 
-	
-	    titleNode.setSclass("wf-section-title"); 
-	    nodeApprovalArea.appendChild(titleNode);
-	
+	    nodeApprovalArea.setSclass("wf-card-container");
+
+	    Hlayout nodeHeader = new Hlayout();
+	    nodeHeader.setHflex("1");
+	    nodeHeader.setStyle("display: flex; justify-content: space-between; align-items: center; width: 100%;");
+	    titleNode.setSclass("wf-section-title");
+	    nodeHeader.appendChild(titleNode);
+
+	    bBackToList.setLabel("◀▐▐");
+	    bBackToList.setSclass("wf-btn-back-to-list");
+	    bBackToList.setStyle("margin-left: auto;");
+	    bBackToList.setVisible(false);
+	    bBackToList.addEventListener(Events.ON_CLICK, e -> expandWestPanel());
+	    nodeHeader.appendChild(bBackToList);
+	    nodeApprovalArea.appendChild(nodeHeader);
+	    
 	    Vlayout nodeGroup = new Vlayout();
 	    nodeGroup.setSpacing("3px");
-	    lNode.setSclass("wf-field-label"); 
+	    lNode.setSclass("wf-field-label");
 	    nodeGroup.appendChild(lNode);
 	    nodeGroup.appendChild(fNode);
 	    ZKUpdateUtil.setHflex(fNode, "true");
 	    fNode.setReadonly(true);
-	    fNode.setSclass("wf-field-input-readonly"); 
+	    fNode.setSclass("wf-field-input-readonly");
 	    nodeApprovalArea.appendChild(nodeGroup);
-	
+
 	    Vlayout descGroup = new Vlayout();
 	    descGroup.setSpacing("3px");
 	    lDesctiption.setSclass("wf-field-label");
@@ -289,7 +301,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    fDescription.setReadonly(true);
 	    fDescription.setSclass("wf-field-input-readonly wf-min-height-40");
 	    nodeApprovalArea.appendChild(descGroup);
-	
+
 	    Vlayout helpGroup = new Vlayout();
 	    helpGroup.setSpacing("3px");
 	    lHelp.setSclass("wf-field-label");
@@ -459,8 +471,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    chatAreaLayout.appendChild(footerApprovalArea);  
 	
 	    centerPanel.appendChild(chatAreaLayout);
-	    mainChatLayout.appendChild(centerPanel);
-	
+	    mainChatLayout.appendChild(centerPanel);  
+	    
 		South south = new South();
 		south.setSclass("wf-south-panel");
 		
@@ -548,33 +560,35 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         header.setHflex(ratio); 
         return header;
     }
+  	// Update collapseWestPanel():
     private void collapseWestPanel() {
         westPanel.setOpen(false);
+        bBackToList.setVisible(true);
         Clients.evalJavaScript(
             "(function(){" +
-            "  var west = document.querySelector('.wf-west-panel');" +
+            "  var west = document.querySelectorAll('.z-west')[1];" +
             "  if(!west) return;" +
-            "  west.style.display = 'none';" +
-            "  var splitter = west.nextElementSibling;" +
-            "  if(splitter && splitter.className.indexOf('splitter') >= 0)" +
-            "    splitter.style.display = 'none';" +
+            "  var parent = west.parentElement;" +
+            "  parent.style.width = 'auto';" +
+            "  parent.style.display = 'none';" +
             "})();"
         );
     }
 
     private void expandWestPanel() {
         westPanel.setOpen(true);
+        bBackToList.setVisible(false);
         Clients.evalJavaScript(
             "(function(){" +
-            "  var west = document.querySelector('.wf-west-panel');" +
+            "  var west = document.querySelectorAll('.z-west')[1];" +
             "  if(!west) return;" +
-            "  west.style.display = '';" +
-            "  var splitter = west.nextElementSibling;" +
-            "  if(splitter && splitter.className.indexOf('splitter') >= 0)" +
-            "    splitter.style.display = '';" +
+            "  var parent = west.parentElement;" +
+            "  parent.style.width = '392px';" +
+            "  parent.style.display = 'block';" +
             "})();"
         );
     }
+    
 	@Override
 	public void onEvent(Event event) throws Exception
 	{

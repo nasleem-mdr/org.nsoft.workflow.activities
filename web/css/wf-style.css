@@ -226,9 +226,6 @@
     display: block !important;
 }
 
-/* =============================================================================
-   FIX TOMBOL TERPOTONG — Center scroll + South selalu visible
-   ============================================================================= */
 
 /* Center panel harus scroll */
 .wf-center-panel > div {
@@ -294,10 +291,37 @@
         width: 100% !important;
     }
 }
+.wf-btn-back-to-list {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 18px;
+}
 
 .wf-btn-reject:hover {
     background-color: #b91c1c !important;
 }
+
+.wf-btn-back-to-list,
+.wf-btn-back-to-list:hover,
+.wf-btn-back-to-list:focus {
+    background-color: transparent !important;
+    color: #d13939 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 6px 14px !important;
+    font-size: 16px !important;
+    font-weight: bold !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
+    background-image: none !important;
+    min-width: unset !important;
+    margin-left: auto !important;
+}
+
 /* Margin/Padding Utility Ringan */
 .wf-margin-top-10 { margin-top: 10px !important; }
 .wf-margin-right-5 { margin-right: 5px !important; }
