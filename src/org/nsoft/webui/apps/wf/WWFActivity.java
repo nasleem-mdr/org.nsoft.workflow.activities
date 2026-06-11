@@ -167,7 +167,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Tabpanels tabpanels = new Tabpanels();
 	private WFTransactionDetailRenderer txRenderer;
 	private West westPanel = new West();
-	private Button bBackToList = new Button();
 	private org.zkoss.zul.Listbox cardListbox = new org.zkoss.zul.Listbox();
 
 	private Hlayout createModernActionButtons() {
@@ -322,9 +321,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    grpTxDetails.setVisible(true); 
 	    grpTxDetails.setSclass("wf-groupbox-clean"); 
 	
-		 Vlayout headerInfoLayout = new Vlayout();
-		 headerInfoLayout.setHflex("1");
-		 headerInfoLayout.setSpacing("4px");
+	    Vlayout headerInfoLayout = new Vlayout();
+	    headerInfoLayout.setHflex("1");
+	    headerInfoLayout.setSpacing("4px");
 		 headerInfoLayout.setSclass("wf-header-info");
 	
 		 // Baris 1: No. Dokumen
@@ -468,10 +467,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		south.setSclass("wf-south-panel");
 		
 		// Buat layout untuk south: statusbar kiri, tombol kanan
-		Hlayout southLayout = new Hlayout();  // atau Hlayout
+		Hlayout southLayout = new Hlayout(); 
 		southLayout.setHflex("1");
-		southLayout.setStyle("justify-content: space-between; align-items: center;");
-		
+        southLayout.setSclass("wf-south-layout");
 		southLayout.appendChild(statusBar);
 		
 		Hlayout actionButtons = createModernActionButtons();
