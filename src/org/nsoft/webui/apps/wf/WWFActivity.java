@@ -171,30 +171,27 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private org.zkoss.zul.Listbox cardListbox = new org.zkoss.zul.Listbox();
 
 	private Hlayout createModernActionButtons() {
-		Hlayout buttonLayout = new Hlayout();
-		buttonLayout.setHflex("1");
-		buttonLayout.setSpacing("15px");
-		buttonLayout.setStyle("margin-top: 20px; padding: 10px 0; justify-content: flex-end;");
+       Hlayout buttonLayout = new Hlayout();
+       buttonLayout.setHflex("1");
+       buttonLayout.setSpacing("10px");
 
-		// Tombol Approve
-		Button btnApprove = new Button("Approve");
-		btnApprove.setHeight("45px");
-		btnApprove.setHflex("1");
-		btnApprove.setStyle("background-color: #2ecc71; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
-		btnApprove.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(true));
+       Button btnApprove = new Button("Approve");
+       btnApprove.setHeight("38px");
+       btnApprove.setHflex("1");
+       btnApprove.setSclass("wf-btn-approve");  
+       btnApprove.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(true));
 
-		// Tombol Reject
-		Button btnReject = new Button("Reject");
-		btnReject.setHeight("45px");
-		btnReject.setHflex("1");
-		btnReject.setStyle("background-color: #e74c3c; color: white; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;");
-		btnReject.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(false));
+       Button btnReject = new Button("Reject");
+       btnReject.setHeight("38px");
+       btnReject.setHflex("1");
+       btnReject.setSclass("wf-btn-reject");
+       btnReject.addEventListener(Events.ON_CLICK, e -> executeApprovalDirectly(false));
 
-		buttonLayout.appendChild(btnReject);
-		buttonLayout.appendChild(btnApprove);
-		
-		return buttonLayout;
-	}
+       buttonLayout.appendChild(btnReject);
+       buttonLayout.appendChild(btnApprove);
+
+       return buttonLayout;
+    }
 
 	public WWFActivity()
 	{
@@ -274,14 +271,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    nodeHeader.setStyle("display: flex; justify-content: space-between; align-items: center; width: 100%;");
 	    titleNode.setSclass("wf-section-title");
 	    nodeHeader.appendChild(titleNode);
-
-	 //   bBackToList.setLabel("◀▐▐");
-	 //  bBackToList.setSclass("wf-btn-back-to-list");
-	 //  bBackToList.setStyle("margin-left: auto;");
-	 //  bBackToList.setVisible(false);
-	 //   bBackToList.addEventListener(Events.ON_CLICK, e -> expandWestPanel());
-	 //   nodeHeader.appendChild(bBackToList);
-	 //   nodeApprovalArea.appendChild(nodeHeader);
 	    
 	    Vlayout nodeGroup = new Vlayout();
 	    nodeGroup.setSpacing("3px");
@@ -556,7 +545,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	        log.log(java.util.logging.Level.SEVERE, "Gagal mengeksekusi aksi tombol persetujuan kustom", ex);
 	    }
 	}
-	// Helper membuat header dengan rasio lebar persentase fleksibel (hflex)
+	// Helper for flexible header ratio (hflex)
     private org.zkoss.zul.Listheader createHeader(String label, String ratio) {
         Listheader header = new Listheader(label);
         header.setHflex(ratio); 
@@ -564,41 +553,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
     }
 
 	private void collapseWestPanel() {
-      westPanel.setOpen(false);
-    // hapus Clients.evalJavaScript sama sekali
+       westPanel.setOpen(false);
     }
 
     private void expandWestPanel() {
-     westPanel.setOpen(true);
+       westPanel.setOpen(true);
     }
-  	// Update collapseWestPanel():
-//    private void collapseWestPanel() {
-   //     westPanel.setOpen(false);
-     //   bBackToList.setVisible(true);
-    //    Clients.evalJavaScript(
-       //     "(function(){" +
-        //    "  var west = document.querySelectorAll('.z-west')[1];" +
-        //    "  if(!west) return;" +
-        //    "  var parent = west.parentElement;" +
-        //    "  parent.style.width = 'auto';" +
-        //    "  parent.style.display = 'none';" +
-         //   "})();"
-     //   );
- //   }
-
-  //  private void expandWestPanel() {
-   //     westPanel.setOpen(true);
-    //    bBackToList.setVisible(false);
-     //   Clients.evalJavaScript(
-    //        "(function(){" +
-      //      "  var west = document.querySelectorAll('.z-west')[1];" +
-    //        "  if(!west) return;" +
-     //       "  var parent = west.parentElement;" +
-      //      "  parent.style.width = '392px';" +
-     //       "  parent.style.display = 'block';" +
-    //        "})();"
-   //     );
-  //  }
     
 	@Override
 	public void onEvent(Event event) throws Exception
@@ -670,39 +630,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	            .setParameters(AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_User_ID, AD_Client_ID)
 	            .setOrderBy("AD_WF_Activity.Priority DESC, AD_WF_Activity.Created")
 	            .iterate();
-
-//	    List<MWFActivity> list = new ArrayList<MWFActivity>();
-//	    while (it.hasNext()) {
-//	        MWFActivity activity = it.next();
-//	        list.add(activity);
-//	        List<Object> rowData = new ArrayList<Object>();
-//	        // Gabungkan semua info jadi 1 kolom
-//	        String label = activity.getNodeName() + "\n" + activity.getSummary();
-//	        rowData.add(label);
-//	        model.add(rowData);
-//	        if (list.size() > MAX_ACTIVITIES_IN_LIST && MAX_ACTIVITIES_IN_LIST > 0)
-//	        {
-//	            log.warning("More than " + MAX_ACTIVITIES_IN_LIST + " Activities - ignored");
-//	            break;
-//	        }
-//	    }
-//	    m_activities = new MWFActivity[list.size()];
-//	    list.toArray(m_activities);
-//
-//	    if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis()-start) + "ms)");
-//	    m_index = 0;
-//
-//	    // Hanya 1 kolom, tanpa header
-//	    WListItemRenderer renderer = new WListItemRenderer(Arrays.asList(new String[]{""}));
-//	    ListHeader header = new ListHeader();
-//	    ZKUpdateUtil.setWidth(header, "100%");
-//	    renderer.setListHeader(0, header);
-//	    renderer.addTableValueChangeListener(listbox);
-//	    model.setNoColumns(1);
-//	    listbox.setModel(model);
-//	    listbox.setItemRenderer(renderer);
-//	    listbox.setSizedByContent(false);
-//	    listbox.repaint();
 	    List<MWFActivity> list = new ArrayList<MWFActivity>();
 	    while (it.hasNext()) {
 	        MWFActivity activity = it.next();
