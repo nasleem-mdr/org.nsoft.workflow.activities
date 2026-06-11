@@ -69,10 +69,8 @@ import org.zkoss.zk.ui.event.Events;
 import org.zkoss.zk.ui.util.Clients;
 import org.zkoss.zul.Borderlayout;
 import org.zkoss.zul.Center;
-import org.zkoss.zul.Div;
 import org.zkoss.zul.Hlayout;
 import org.zkoss.zul.Html;
-import org.zkoss.zul.North;
 import org.zkoss.zul.South;
 import org.zkoss.zul.Vlayout;
 import org.zkoss.zul.Groupbox;
@@ -142,9 +140,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private Label lForward = new Label(Msg.getMsg(Env.getCtx(), "Forward") + " (" + Msg.translate(Env.getCtx(), "Optional") + ")");
 	private StatusBarPanel statusBar = new StatusBarPanel();
 	private Button bRefresh = new Button();
-
-	private ListModelTable model = null;
-	private WListbox listbox = new WListbox();		
+	private ListModelTable model = null;		
 	private Groupbox grpTxDetails = new Groupbox();
 	private Listbox lstTxLines = new Listbox();
 	private	Label titleWestpanel = new Label(Msg.getMsg(Env.getCtx(),"List Approval"));
@@ -270,6 +266,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    nodeHeader.setStyle("display: flex; justify-content: space-between; align-items: center; width: 100%;");
 	    titleNode.setSclass("wf-section-title");
 	    nodeHeader.appendChild(titleNode);
+		nodeApprovalArea.appendChild(nodeHeader);
 	    
 	    Vlayout nodeGroup = new Vlayout();
 	    nodeGroup.setSpacing("3px");
