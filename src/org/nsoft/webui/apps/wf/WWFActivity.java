@@ -168,6 +168,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private WFTransactionDetailRenderer txRenderer;
 	private West westPanel = new West();
 	private Button bBackToList = new Button();
+	private org.zkoss.zul.Listbox cardListbox = new org.zkoss.zul.Listbox();
 
 	private Hlayout createModernActionButtons() {
 		Hlayout buttonLayout = new Hlayout();
@@ -232,7 +233,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
                 lHdrCol3,       lHdrCol3Title,
                 lHdrCol4,       lHdrCol4Title
         );
-		System.out.println("$$$$$ NSOFT initForm() dipanggil $$$$$");
+		
 		display(-1);
        
     }
@@ -255,11 +256,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    westPanel.setTitle("Approval List");
 	    westPanel.setSclass("wf-west-panel"); 
 	    
-	    listbox.setSclass("wf-approval-listbox");
-	    ZKUpdateUtil.setVflex(listbox, "1");
-	    ZKUpdateUtil.setHflex(listbox, "1");
-	    westPanel.appendChild(listbox);
-	    listbox.addEventListener(Events.ON_SELECT, this);
+	    cardListbox.setSclass("wf-approval-listbox");
+	    cardListbox.setVflex("1");
+	    cardListbox.setHflex("1");
+	    westPanel.appendChild(cardListbox);
+	    cardListbox.addEventListener(Events.ON_SELECT, this);
 	
 	 // Part 2: Center Panel - Approval Node
 	    Vlayout nodeApprovalArea = new Vlayout();
@@ -615,9 +616,9 @@ public class WWFActivity extends ADForm implements EventListener<Event>
     		else if (comp == fAnswerButton)
     			cmd_button();
 	        } 
-	        else if (Events.ON_SELECT.equals(eventName) && comp == listbox)
+	        else if (Events.ON_SELECT.equals(eventName) && comp == cardListbox)
 	        {
-	            m_index = listbox.getSelectedIndex();
+	            m_index = cardListbox.getSelectedIndex();
 	            if (m_index >= 0) {
 	                display(m_index);
 	                collapseWestPanel();
@@ -660,14 +661,46 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	            .setOrderBy("AD_WF_Activity.Priority DESC, AD_WF_Activity.Created")
 	            .iterate();
 
+//	    List<MWFActivity> list = new ArrayList<MWFActivity>();
+//	    while (it.hasNext()) {
+//	        MWFActivity activity = it.next();
+//	        list.add(activity);
+//	        List<Object> rowData = new ArrayList<Object>();
+//	        // Gabungkan semua info jadi 1 kolom
+//	        String label = activity.getNodeName() + "\n" + activity.getSummary();
+//	        rowData.add(label);
+//	        model.add(rowData);
+//	        if (list.size() > MAX_ACTIVITIES_IN_LIST && MAX_ACTIVITIES_IN_LIST > 0)
+//	        {
+//	            log.warning("More than " + MAX_ACTIVITIES_IN_LIST + " Activities - ignored");
+//	            break;
+//	        }
+//	    }
+//	    m_activities = new MWFActivity[list.size()];
+//	    list.toArray(m_activities);
+//
+//	    if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis()-start) + "ms)");
+//	    m_index = 0;
+//
+//	    // Hanya 1 kolom, tanpa header
+//	    WListItemRenderer renderer = new WListItemRenderer(Arrays.asList(new String[]{""}));
+//	    ListHeader header = new ListHeader();
+//	    ZKUpdateUtil.setWidth(header, "100%");
+//	    renderer.setListHeader(0, header);
+//	    renderer.addTableValueChangeListener(listbox);
+//	    model.setNoColumns(1);
+//	    listbox.setModel(model);
+//	    listbox.setItemRenderer(renderer);
+//	    listbox.setSizedByContent(false);
+//	    listbox.repaint();
 	    List<MWFActivity> list = new ArrayList<MWFActivity>();
 	    while (it.hasNext()) {
 	        MWFActivity activity = it.next();
 	        list.add(activity);
 	        List<Object> rowData = new ArrayList<Object>();
-	        // Gabungkan semua info jadi 1 kolom
-	        String label = activity.getNodeName() + "\n" + activity.getSummary();
-	        rowData.add(label);
+	        rowData.add(activity.getPriority());
+	        rowData.add(activity.getNodeName());
+	        rowData.add(activity.getSummary());
 	        model.add(rowData);
 	        if (list.size() > MAX_ACTIVITIES_IN_LIST && MAX_ACTIVITIES_IN_LIST > 0)
 	        {
@@ -675,27 +708,202 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	            break;
 	        }
 	    }
+	    // Assign m_activities yang hilang!
 	    m_activities = new MWFActivity[list.size()];
 	    list.toArray(m_activities);
 
 	    if (log.isLoggable(Level.FINE)) log.fine("#" + m_activities.length + "(" + (System.currentTimeMillis()-start) + "ms)");
 	    m_index = 0;
 
-	    // Hanya 1 kolom, tanpa header
-	    WListItemRenderer renderer = new WListItemRenderer(Arrays.asList(new String[]{""}));
-	    ListHeader header = new ListHeader();
-	    ZKUpdateUtil.setWidth(header, "100%");
-	    renderer.setListHeader(0, header);
-	    renderer.addTableValueChangeListener(listbox);
+	    // Bersihkan dan render ulang
+	    cardListbox.getChildren().clear();
 	    model.setNoColumns(1);
-	    listbox.setModel(model);
-	    listbox.setItemRenderer(renderer);
-	    listbox.setSizedByContent(false);
-	    listbox.repaint();
+	    cardListbox.setModel(model);
+	    cardListbox.setItemRenderer(new WFCardRenderer());
+	    cardListbox.setSizedByContent(false);
 
 	    return m_activities.length;
 	}
+	
+	private class WFCardRenderer implements org.zkoss.zul.ListitemRenderer<List<Object>> {
+	    @Override
+	    public void render(org.zkoss.zul.Listitem item, List<Object> data, int index) throws Exception {
+	        MWFActivity act = m_activities[index];
+	        
+	        int priorityVal = act.getPriority();
+	        String priority = String.valueOf(priorityVal);
+	        String nodeName = act.getNodeName() != null ? act.getNodeName() : "";
+	        String summary = act.getSummary() != null ? act.getSummary() : "";
 
+		     // Summary format: "Approve Sales Order Order 80017: GardenUser Standard"
+		     // Pisahkan di titik dua (:) untuk dapat DocNo dan UserName
+		     String summaryLine1 = summary;
+		     String summaryLine2 = "";
+	
+		     int colonIdx = summary.indexOf(":");
+		     if (colonIdx > 0) {
+		         summaryLine1 = summary.substring(0, colonIdx + 1).trim(); // "Order 80017:"
+		         summaryLine2 = summary.substring(colonIdx + 1).trim();    // "GardenUser Standard"
+		     }
+
+	        // Warna badge dinamis berdasarkan nilai priority
+	        String badgeClass;
+	        if (priorityVal <= 3) {
+	            badgeClass = "wf-priority-green";
+	        } else if (priorityVal <= 6) {
+	            badgeClass = "wf-priority-yellow";
+	        } else {
+	            badgeClass = "wf-priority-red";
+	        }
+
+	        String html =
+		         "<div class='wf-card-item'>" +
+		         "  <div class='wf-card-priority'>" +
+		         "    <div>Priority :</div>" +
+		         "    <div><span class='wf-card-priority-value " + badgeClass + "'>" + priority + "</span></div>" +
+		         "  </div>" +
+		         "  <div class='wf-card-divider'></div>" +
+		         "  <div class='wf-card-node'>" + nodeName + "</div>" +
+		         "  <div class='wf-card-divider'></div>" +
+		         "  <div class='wf-card-summary'>" + summaryLine1 + "</div>" +
+		         (!summaryLine2.isEmpty() ? "<div class='wf-card-summary-sub'>" + summaryLine2 + "</div>" : "") +
+		         "</div>";
+
+	        org.zkoss.zul.Listcell cell = new org.zkoss.zul.Listcell();
+	        org.zkoss.zul.Html htmlComp = new org.zkoss.zul.Html();
+	        htmlComp.setContent(html);
+	        cell.appendChild(htmlComp);
+	        item.appendChild(cell);
+	        item.setSclass("wf-card-listitem");
+	    }
+	}
+	private String buildTimelineHTML(String rawHtml) {
+	    if (rawHtml == null || rawHtml.isEmpty()) 
+	        return "";
+
+	    // Parse setiap <p> entry
+	    java.util.regex.Pattern pPattern = java.util.regex.Pattern.compile(
+	        "<p>(.*?)</p>", 
+	        java.util.regex.Pattern.DOTALL
+	    );
+	    java.util.regex.Matcher pMatcher = pPattern.matcher(rawHtml);
+
+	    // Format tanggal dari history
+	    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat(
+	        "MMM dd, yyyy, h:mm:ss a z", java.util.Locale.ENGLISH
+	    );
+
+	    java.util.List<java.util.Date> dates = new java.util.ArrayList<>();
+	    java.util.List<String> entries = new java.util.ArrayList<>();
+
+	    while (pMatcher.find()) {
+	        String entry = pMatcher.group(1).trim();
+	        if (entry.isEmpty()) continue;
+	        entries.add(entry);
+
+	        // Extract tanggal dari awal string (sebelum <b>)
+	        try {
+	            // Ambil text sebelum <b>
+	            String textOnly = entry.replaceAll("<[^>]+>", "").trim();
+	            // Format: "May 22, 2026, 3:37:33 PM WIB (Start):"
+	            // Ambil bagian tanggal saja: "May 22, 2026, 3:37:33 PM WIB"
+	            java.util.regex.Matcher dateMatcher = java.util.regex.Pattern
+	                .compile("^(\\w+ \\d+, \\d+, \\d+:\\d+:\\d+ (?:AM|PM) \\w+)")
+	                .matcher(textOnly);
+	            if (dateMatcher.find()) {
+	                dates.add(sdf.parse(dateMatcher.group(1)));
+	            } else {
+	                dates.add(null);
+	            }
+	        } catch (Exception e) {
+	            dates.add(null);
+	        }
+	    }
+
+	    if (entries.isEmpty()) return "";
+
+	    StringBuilder sb = new StringBuilder();
+	    sb.append("<div class='wf-timeline'>");
+
+	    for (int i = 0; i < entries.size(); i++) {
+	        String entry = entries.get(i);
+
+	        // Extract bagian-bagian entry
+	        // Tanggal: sebelum <b>
+	        String dateStr = "";
+	        java.util.regex.Matcher dateTxtMatcher = java.util.regex.Pattern
+	            .compile("^([^<]+)")
+	            .matcher(entry);
+	        if (dateTxtMatcher.find()) {
+	            dateStr = dateTxtMatcher.group(1).trim();
+	            if (dateStr.endsWith(":")) 
+	                dateStr = dateStr.substring(0, dateStr.length()-1).trim();
+	        }
+
+	        // Action: isi <b>
+	        String action = "";
+	        java.util.regex.Matcher bMatcher = java.util.regex.Pattern
+	            .compile("<b>(.*?)</b>")
+	            .matcher(entry);
+	        if (bMatcher.find()) 
+	            action = bMatcher.group(1).replaceAll("[()]", "").trim();
+
+	        // Detail: isi <i>
+	        String detail = "";
+	        java.util.regex.Matcher iMatcher = java.util.regex.Pattern
+	            .compile("<i>(.*?)</i>")
+	            .matcher(entry);
+	        if (iMatcher.find()) 
+	            detail = iMatcher.group(1).trim();
+
+	        // Hitung selisih hari dari entry sebelumnya
+	        String dotClass = "wf-tl-dot-green"; // default
+	        String daysBadge = "";
+
+	        if (i > 0 && dates.get(i) != null && dates.get(i-1) != null) {
+	            long diffMs = dates.get(i).getTime() - dates.get(i-1).getTime();
+	            long diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+	            if (diffDays <= 1) {
+	                dotClass = "wf-tl-dot-green";
+	                daysBadge = diffDays + "d";
+	            } else if (diffDays <= 4) {
+	                dotClass = "wf-tl-dot-yellow";
+	                daysBadge = diffDays + "d";
+	            } else {
+	                dotClass = "wf-tl-dot-red";
+	                daysBadge = diffDays + "d";
+	            }
+	        }
+
+	        boolean isLast = (i == entries.size() - 1);
+
+	        sb.append("<div class='wf-tl-entry'>")
+	          .append("  <div class='wf-tl-left'>")
+	          .append("    <div class='wf-tl-dot ").append(dotClass).append("'></div>")
+	          .append(isLast ? "" : "<div class='wf-tl-line'></div>")
+	          .append("  </div>")
+	          .append("  <div class='wf-tl-content'>")
+	          .append("    <div class='wf-tl-date'>").append(dateStr);
+
+	        if (!daysBadge.isEmpty()) {
+	            sb.append(" <span class='wf-tl-badge ").append(dotClass).append("'>+").append(daysBadge).append("</span>");
+	        }
+
+	        sb.append("    </div>")
+	          .append("    <div class='wf-tl-action'>").append(action).append("</div>");
+
+	        if (!detail.isEmpty()) {
+	            sb.append("<div class='wf-tl-detail'>").append(detail).append("</div>");
+	        }
+
+	        sb.append("  </div>")
+	          .append("</div>");
+	    }
+
+	    sb.append("</div>");
+	    return sb.toString();
+	}
 	private MWFActivity resetDisplay(int selIndex)
 	{
 		fAnswerText.setVisible(false);
@@ -720,15 +928,14 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 			if (selIndex >= 0 && selIndex < m_activities.length)
 				m_activity = m_activities[selIndex];
 		}
-		
 		if (m_activity == null)
 		{
-			fNode.setText ("");
-			fDescription.setText ("");
-			fHelp.setText ("");
-			fHistory.setContent(HISTORY_DIV_START_TAG + "&nbsp;</div>");
-			statusBar.setStatusDB("0/" + m_activities.length);
-			statusBar.setStatusLine(Msg.getMsg(Env.getCtx(), "WFNoActivities"));
+		    fNode.setText("");
+		    fDescription.setText("");
+		    fHelp.setText("");
+		    fHistory.setContent("<div class='wf-timeline'></div>");
+		    statusBar.setStatusDB("0/" + m_activities.length);
+		    statusBar.setStatusLine(Msg.getMsg(Env.getCtx(), "WFNoActivities"));
 		}
 		return m_activity;
 	}	
@@ -748,7 +955,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fNode.setText (m_activity.getNodeName());
 		fDescription.setValue (m_activity.getNodeDescription());
 		fHelp.setValue (m_activity.getNodeHelp());
-		fHistory.setContent (HISTORY_DIV_START_TAG+m_activity.getHistoryHTML()+"</div>");
+		String historyHtml = m_activity.getHistoryHTML();
+		fHistory.setContent(
+		    historyHtml != null && !historyHtml.isEmpty() 
+		        ? buildTimelineHTML(historyHtml) 
+		        : "<div class='wf-timeline'></div>"
+		);
 
 		MWFNode node = m_activity.getNode();
 		if (MWFNode.ACTION_UserChoice.equals(node.getAction()))

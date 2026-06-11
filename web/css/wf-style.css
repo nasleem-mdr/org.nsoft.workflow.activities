@@ -1,4 +1,11 @@
-/* Container Utama Layout */
+/* =============================================================================
+   WF ACTIVITY FORM — MASTER STYLESHEET
+   Terorganisir: Layout → Typography → Components → Mobile
+   ============================================================================= */
+
+/* -----------------------------------------------------------------------------
+   1. LAYOUT UTAMA
+   ----------------------------------------------------------------------------- */
 .wf-window-root {
     height: 100%;
     width: 100%;
@@ -6,11 +13,13 @@
 }
 
 .wf-main-layout {
-    background-color: #f8fafc !important; /* Warna dasar abu-abu lembut iDempiere */
+    background-color: #f8fafc !important;
     position: relative;
 }
 
-.wf-west-panel, .wf-south-panel, .wf-center-panel {
+.wf-west-panel,
+.wf-south-panel,
+.wf-center-panel {
     background-color: transparent !important;
     border: none !important;
 }
@@ -19,24 +28,33 @@
     overflow: auto !important;
 }
 
+.wf-center-panel > div {
+    overflow-y: auto !important;
+    height: 100% !important;
+}
+
 .wf-chat-area-padding {
     padding: 16px !important;
 }
 
-/* Pola Kartu Komponen (Card Containers) */
+/* -----------------------------------------------------------------------------
+   2. CARD CONTAINER
+   ----------------------------------------------------------------------------- */
 .wf-card-container {
     background: #ffffff;
     padding: 16px;
     border: 1px solid #e2e8f0;
     border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Soft shadow standar admin panel */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
-/* Tipografi & Label */
+/* -----------------------------------------------------------------------------
+   3. TYPOGRAPHY & LABEL
+   ----------------------------------------------------------------------------- */
 .wf-section-title {
     font-weight: bold;
     font-size: 14px;
-    color: #1e293b; /* Slate-800 iDempiere */
+    color: #1e293b;
     display: block;
     margin-bottom: 6px;
 }
@@ -48,13 +66,28 @@
 
 .wf-field-label {
     font-weight: 600;
-    color: #475569; /* Slate-600 */
+    color: #475569;
     font-size: 12px;
 }
 
-/* Kustomisasi Input Form Readonly & Textarea */
+.wf-field-value {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #2c3e50 !important;
+    flex: 1 !important;
+}
+
+.wf-value-numeric {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    color: #1a5276 !important;
+}
+
+/* -----------------------------------------------------------------------------
+   4. INPUT & TEXTAREA
+   ----------------------------------------------------------------------------- */
 .wf-field-input-readonly {
-    background: #f1f5f9 !important; /* Muted gray background */
+    background: #f1f5f9 !important;
     border: 1px solid #cbd5e1 !important;
     padding: 6px 10px !important;
     border-radius: 4px;
@@ -80,11 +113,92 @@
     padding: 6px !important;
 }
 
-/* Reset Grid & Groupbox iDempiere Default */
-.z-grid.wf-grid-clean, .wf-grid-clean .z-row, .wf-grid-clean .z-cell {
+/* -----------------------------------------------------------------------------
+   5. HEADER INFO (Detail Transaksi — label/value rows)
+   ----------------------------------------------------------------------------- */
+/* Header info container */
+.wf-header-info {
+    padding: 4px 0;
+}
+
+/* Target span/div ZK di dalam hlayout */
+.wf-header-info > .z-hlayout {
+    display: flex !important;
+    align-items: center !important;
+    padding: 6px 8px !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+    gap: 0 !important;
+}
+
+.wf-header-info > .z-hlayout:last-child {
+    border-bottom: none !important;
+}
+
+/* Label — kolom kiri */
+.wf-label-min {
+    min-width: 120px !important;
+    max-width: 120px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    color: #94a3b8 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    flex-shrink: 0 !important;
+    padding-right: 8px !important;
+}
+
+/* Separator titik dua visual */
+.wf-label-min::after {
+    content: "" !important;
+}
+
+/* Value — kolom kanan */
+.wf-field-value {
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #1e293b !important;
+    flex: 1 !important;
+    padding-left: 4px !important;
+    border-left: 2px solid #e2e8f0 !important;
+}
+
+/* Total — highlight khusus */
+.wf-value-numeric {
+    font-size: 16px !important;
+    font-weight: 800 !important;
+    color: #1a5276 !important;
+    background-color: #eaf4fb !important;
+    border-radius: 4px !important;
+    padding: 2px 8px !important;
+    border-left: 2px solid #2980b9 !important;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .wf-label-min {
+        min-width: 90px !important;
+        max-width: 90px !important;
+        font-size: 9px !important;
+    }
+
+    .wf-field-value {
+        font-size: 12px !important;
+    }
+
+    .wf-value-numeric {
+        font-size: 14px !important;
+    }
+}
+
+/* -----------------------------------------------------------------------------
+   6. GROUPBOX & GRID
+   ----------------------------------------------------------------------------- */
+.z-grid.wf-grid-clean,
+.wf-grid-clean .z-row,
+.wf-grid-clean .z-cell {
     border: none !important;
     background: transparent !important;
-    padding: 4px 0px !important;
+    padding: 4px 0 !important;
 }
 
 .z-groupbox.wf-groupbox-clean {
@@ -92,161 +206,140 @@
     padding: 0 !important;
 }
 
-/* Tabbox Modern Overrides */
+.wf-groupbox-clean .z-groupbox-head {
+    background-color: #f8f9fa !important;
+    border-bottom: 2px solid #e0e0e0 !important;
+    padding: 6px 10px !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    color: #666 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+/* -----------------------------------------------------------------------------
+   7. DETAIL LISTBOX (Lines tabel transaksi)
+   ----------------------------------------------------------------------------- */
+.wf-details-listbox .z-listheader {
+    background-color: #f0f4f8 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #555 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.4px !important;
+    border-bottom: 2px solid #dde3ea !important;
+}
+
+.wf-details-listbox .z-listitem:nth-child(even) {
+    background-color: #f9fbfd !important;
+}
+
+.wf-details-listbox .z-listcell {
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+    color: #34495e !important;
+}
+
+/* -----------------------------------------------------------------------------
+   8. TABBOX
+   ----------------------------------------------------------------------------- */
 .z-tabbox.wf-tabbox-custom .z-tabs {
     background: transparent !important;
     border-bottom: 2px solid #e2e8f0 !important;
 }
-/* =============================================================================
-   APPROVAL LIST — CARD STYLE
-   Tambahkan ke wf-style.css
-   ============================================================================= */
 
-/* Hapus border dan styling default listbox iDempiere */
+/* -----------------------------------------------------------------------------
+   9. APPROVAL LIST — WEST PANEL CARD STYLE
+   ----------------------------------------------------------------------------- */
 .wf-approval-listbox .z-listbox-body {
     border: none !important;
 }
 
 .wf-approval-listbox .z-listhead {
-    display: none !important; /* sembunyikan header kolom */
-}
-
-/* Sembunyikan header kolom */
-.wf-approval-listbox .z-listhead {
     display: none !important;
 }
 
-/* Setiap row jadi card */
-.wf-approval-listbox .z-listitem {
-    border-bottom: 1px solid #e2e8f0 !important;
+.wf-card-listitem {
+    border-bottom: 1px solid #e0e0e0 !important;
     border-left: 3px solid transparent !important;
-    padding: 8px 10px !important;
-    cursor: pointer !important;
-    display: block !important;
+    padding: 0 !important;
+    cursor: pointer;
+    transition: background 0.12s, border-left-color 0.12s;
 }
 
-.wf-approval-listbox .z-listitem:hover {
-    background: #f0f7ff !important;
+.wf-card-listitem:hover {
+    background-color: #f0f7ff !important;
     border-left-color: #93c5fd !important;
 }
 
-.wf-approval-listbox .z-listitem-selected {
-    background: #eff6ff !important;
+.wf-card-listitem.z-listitem-selected,
+.wf-card-listitem.z-listitem-selected:hover {
+    background-color: #eff6ff !important;
     border-left-color: #2563eb !important;
 }
 
-/* Setiap cell dalam row ditumpuk vertikal */
-.wf-approval-listbox .z-listcell {
-    display: block !important;
-    border: none !important;
-    padding: 1px 0 !important;
+.wf-card-item {
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.6;
 }
 
-/* Kolom Priority — kecil dan muted */
-.wf-approval-listbox .z-listcell:nth-child(1) {
-    font-size: 10px !important;
-    color: #94a3b8 !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-}
-
-/* Kolom Node — bold */
-.wf-approval-listbox .z-listcell:nth-child(2) {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    color: #1e293b !important;
-}
-
-/* Kolom Summary — biru untuk doc no */
-.wf-approval-listbox .z-listcell:nth-child(3) {
-    font-size: 12px !important;
-    color: #2563eb !important;
-    font-weight: 500 !important;
-    white-space: pre-line !important; /* agar \n tetap jadi baris baru */
-}
-
-/* Item card */
-.wf-approval-item {
-    border-bottom: 1px solid #e2e8f0 !important;
-    border-left: 3px solid transparent !important;
-    cursor: pointer !important;
-    transition: background 0.12s, border-left-color 0.12s !important;
-}
-
-.wf-approval-item:hover {
-    background: #f0f7ff !important;
-    border-left-color: #93c5fd !important;
-}
-
-.wf-approval-item.z-listitem-selected,
-.wf-approval-item:focus {
-    background: #eff6ff !important;
-    border-left: 3px solid #2563eb !important;
-}
-
-/* Card container dalam item */
-.wf-approval-card {
-    padding: 10px 12px !important;
-    width: 100% !important;
-}
-
-/* Priority badge */
 .wf-card-priority {
-    font-size: 10px !important;
-    font-weight: 700 !important;
-    color: #94a3b8 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.06em !important;
-    display: block !important;
-    margin-bottom: 3px !important;
-}
-
-/* Node name */
-.wf-card-node {
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    color: #1e293b !important;
-    display: block !important;
-    margin-bottom: 3px !important;
-}
-
-/* Doc No / Summary baris 1 */
-.wf-card-docno {
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    color: #2563eb !important;
-    display: block !important;
-    margin-bottom: 2px !important;
-}
-
-/* BP / User — summary baris 2 */
-.wf-card-bp {
-    font-size: 11px !important;
-    color: #64748b !important;
-    display: block !important;
-}
-
-
-/* Center panel harus scroll */
-.wf-center-panel > div {
-    overflow-y: auto !important;
-    height: 100% !important;
-}
-
-/* South panel selalu terlihat di bawah */
-.wf-south-panel {
-    background: #ffffff !important;
-    border-top: 2px solid #e2e8f0 !important;
-    padding: 10px 16px !important;
     display: flex !important;
+    justify-content: space-between !important;
     align-items: center !important;
-    gap: 10px !important;
+    font-size: 11px;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 3px;
+}
+.wf-card-priority-value {
+    font-size: 13px;
+    font-weight: bold;
+    border-radius: 10px;
+    padding: 1px 8px;
 }
 
-/* =============================================================================
-   TOMBOL APPROVE / REJECT — pindah ke South
-   ============================================================================= */
-.wf-btn-approve {
+.wf-card-divider {
+    border-top: 1px dashed #ddd;
+    margin: 3px 0;
+}
+
+.wf-card-node {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1e293b;
+    display: block;
+    margin-bottom: 3px;
+}
+
+.wf-card-summary {
+    font-size: 12px;
+    font-weight: 500;
+    color: #2563eb;
+    line-height: 1.5;
+}
+
+.wf-card-summary-sub {
+    font-size: 11px;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+/* -----------------------------------------------------------------------------
+   10. PRIORITY BADGE COLORS
+   ----------------------------------------------------------------------------- */
+.wf-priority-green  { color: #1e8449;  background-color: #d5f5e3; }
+.wf-priority-yellow { color: #9a7d0a;  background-color: #fef9e7; }
+.wf-priority-red    { color: #922b21;  background-color: #fdecea; }
+
+/* -----------------------------------------------------------------------------
+   11. TOMBOL APPROVE / REJECT
+   ----------------------------------------------------------------------------- */
+.wf-btn-approve,
+.wf-btn-approve:focus {
     background-color: #16a34a !important;
     color: #ffffff !important;
     font-weight: 700 !important;
@@ -256,14 +349,18 @@
     padding: 8px 24px !important;
     cursor: pointer !important;
     min-width: 120px !important;
+    background-image: none !important;
+    box-shadow: none !important;
     transition: background 0.15s !important;
 }
 
 .wf-btn-approve:hover {
     background-color: #15803d !important;
+    background-image: none !important;
 }
 
-.wf-btn-reject {
+.wf-btn-reject,
+.wf-btn-reject:focus {
     background-color: #dc2626 !important;
     color: #ffffff !important;
     font-weight: 700 !important;
@@ -273,42 +370,23 @@
     padding: 8px 24px !important;
     cursor: pointer !important;
     min-width: 120px !important;
+    background-image: none !important;
+    box-shadow: none !important;
     transition: background 0.15s !important;
-}
-.wf-label-min {
-    min-width: 110px;
-    font-weight: 600;
-    color: #555;
-}
-
-.wf-header-info {
-    padding: 8px 4px;
-}
-
-/* Mobile: west panel collapsed button tetap visible */
-@media (max-width: 768px) {
-    .wf-west-panel {
-        width: 100% !important;
-    }
-}
-.wf-btn-back-to-list {
-    background-color: #e74c3c;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 12px;
-    cursor: pointer;
-    font-size: 18px;
 }
 
 .wf-btn-reject:hover {
     background-color: #b91c1c !important;
+    background-image: none !important;
 }
 
+/* -----------------------------------------------------------------------------
+   12. TOMBOL BACK TO LIST
+   ----------------------------------------------------------------------------- */
 .wf-btn-back-to-list,
-.wf-btn-back-to-list:hover,
 .wf-btn-back-to-list:focus {
     background-color: transparent !important;
+    background-image: none !important;
     color: #d13939 !important;
     border: none !important;
     border-radius: 8px !important;
@@ -317,32 +395,143 @@
     font-weight: bold !important;
     cursor: pointer !important;
     box-shadow: none !important;
-    background-image: none !important;
     min-width: unset !important;
     margin-left: auto !important;
 }
 
-/* Margin/Padding Utility Ringan */
-.wf-margin-top-10 { margin-top: 10px !important; }
-.wf-margin-right-5 { margin-right: 5px !important; }
-.wf-min-height-40 { min-height: 40px !important; }
-/* Responsive Breakpoint untuk Mobile (Smartphone) */
-@media (max-width: 768px) {
-    .wf-west-panel {
-        width: 100% !important;
-        height: auto !important;
-    }
-
-    /* Saat collapsed di mobile, sembunyikan sepenuhnya */
-    .z-west-collapsed .wf-west-panel {
-        display: none !important;
-    }
+.wf-btn-back-to-list:hover {
+    background-color: #e0e0e0 !important;
+    background-image: none !important;
+    color: #d13939 !important;
+    box-shadow: none !important;
 }
 
-@media screen and (max-width: 768px) {
-    
-    /* 1. Paksa Layout Utama Menjadi Satu Kolom Vertikal */
-    .wf-main-layout .z-west, 
+/* -----------------------------------------------------------------------------
+   13. SOUTH PANEL
+   ----------------------------------------------------------------------------- */
+.wf-south-panel {
+    background: #ffffff !important;
+    border-top: 2px solid #e2e8f0 !important;
+    padding: 10px 16px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+}
+
+/* -----------------------------------------------------------------------------
+   14. TIMELINE (Tab Riwayat)
+   ----------------------------------------------------------------------------- */
+.wf-timeline {
+    padding: 10px 5px;
+}
+
+.wf-tl-entry {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.wf-tl-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 16px;
+}
+
+.wf-tl-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+
+.wf-tl-dot-green  { background-color: #2ecc71; }
+.wf-tl-dot-yellow { background-color: #f1c40f; }
+.wf-tl-dot-red    { background-color: #e74c3c; }
+
+.wf-tl-line {
+    width: 2px;
+    flex: 1;
+    background-color: #ddd;
+    margin: 3px 0;
+    min-height: 20px;
+}
+
+.wf-tl-content {
+    flex: 1;
+    padding-bottom: 12px;
+}
+
+.wf-tl-date {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.wf-tl-action {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.wf-tl-detail {
+    font-size: 12px;
+    color: #666;
+    margin-top: 2px;
+    font-style: italic;
+}
+
+.wf-tl-badge {
+    font-size: 10px;
+    font-weight: bold;
+    border-radius: 8px;
+    padding: 1px 6px;
+}
+
+.wf-tl-badge.wf-tl-dot-green  { color: #1e8449; background-color: #d5f5e3; }
+.wf-tl-badge.wf-tl-dot-yellow { color: #9a7d0a; background-color: #fef9e7; }
+.wf-tl-badge.wf-tl-dot-red    { color: #922b21; background-color: #fdecea; }
+
+/* -----------------------------------------------------------------------------
+   15. UTILITY
+   ----------------------------------------------------------------------------- */
+.wf-margin-top-10  { margin-top: 10px !important; }
+.wf-margin-right-5 { margin-right: 5px !important; }
+.wf-min-height-40  { min-height: 40px !important; }
+
+/* -----------------------------------------------------------------------------
+   16. RESPONSIVE MOBILE (max-width: 768px)
+   ----------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+
+    .wf-chat-area-padding {
+        padding: 8px !important;
+    }
+
+    .wf-card-container {
+        padding: 12px;
+    }
+
+    .wf-label-min {
+        min-width: 100px !important;
+        max-width: 100px !important;
+        font-size: 10px !important;
+    }
+
+    .wf-field-value {
+        font-size: 12px !important;
+    }
+
+    .wf-value-numeric {
+        font-size: 14px !important;
+    }
+
+    .wf-main-layout .z-west,
     .wf-main-layout .z-center {
         display: block !important;
         width: 100% !important;
@@ -350,48 +539,21 @@
         left: 0 !important;
         top: 0 !important;
     }
-    
-    /* Buat West Panel (Daftar Approval) mengalir di atas atau bisa di-collapse */
+
     .wf-west-panel {
         width: 100% !important;
         height: auto !important;
-        max-height: 250px; /* Batasi tinggi daftar approval di mobile */
+        max-height: 250px;
         border-bottom: 2px solid #e2e8f0 !important;
     }
 
-    /* 2. Ubah Layout Tombol & Input Horizontal Menjadi Vertikal */
-    .z-flexhlayout, /* Menargetkan FlexHlayout Anda */
-    .wf-card-container .z-flexhlayout {
-        display: flex !important;
-        flex-direction: column !important; /* Susun ke bawah, bukan ke samping */
-        align-items: stretch !important;
-        gap: 8px; /* Beri jarak antar komponen yang turun */
-    }
-
-    /* Sesuaikan komponen di dalam baris action agar memenuhi lebar layar */
-    .wf-card-container .z-flexhlayout > * {
-        width: 100% !important;
-        margin-right: 0 !important;
-        margin-bottom: 4px;
-    }
-
-    /* 3. Optimasi Ukuran Font dan Padding di Mobile */
-    .wf-chat-area-padding {
-        padding: 8px !important; /* Perkecil padding luar agar hemat ruang */
-    }
-
-    .wf-card-container {
-        padding: 12px;
-    }
-
-    /* 4. Buat Grid Data Transaksi Menjadi Scrollable atau Stacked */
     .wf-grid-clean .z-row {
         display: flex;
         flex-direction: column;
         padding: 8px 0;
         border-bottom: 1px dashed #e2e8f0 !important;
     }
-    
+
     .wf-grid-clean .z-cell {
         width: 100% !important;
         padding: 2px 0 !important;
