@@ -255,7 +255,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    westPanel.appendChild(cardListbox);
 	    cardListbox.addEventListener(Events.ON_SELECT, this);
 	
-	 // Part 2: Center Panel - Approval Node
+	    // Part 2: Center Panel - Approval Node
 	    Vlayout nodeApprovalArea = new Vlayout();
 	    nodeApprovalArea.setHflex("1");
 	    nodeApprovalArea.setSpacing("8px");
@@ -321,49 +321,48 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    Vlayout headerInfoLayout = new Vlayout();
 	    headerInfoLayout.setHflex("1");
 	    headerInfoLayout.setSpacing("4px");
-		 headerInfoLayout.setSclass("wf-header-info");
+		headerInfoLayout.setSclass("wf-header-info");
 	
-		 // Baris 1: No. Dokumen
-		 Hlayout row1 = new Hlayout();
-		 row1.setHflex("1");
-		 row1.setSpacing("6px");
-		 lHdrCol1Title.setSclass("wf-field-label wf-label-min");
-		 lHdrCol1.setSclass("wf-field-value");
-		 row1.appendChild(lHdrCol1Title);
-		 row1.appendChild(lHdrCol1);
-		 headerInfoLayout.appendChild(row1);
+		// Line 1: DocumentNo
+		Hlayout row1 = new Hlayout();
+		row1.setHflex("1");
+		row1.setSpacing("6px");
+		lHdrCol1Title.setSclass("wf-field-label wf-label-min");
+		lHdrCol1.setSclass("wf-field-value");
+	    row1.appendChild(lHdrCol1Title);
+		row1.appendChild(lHdrCol1);
+		headerInfoLayout.appendChild(row1);
 	
-		 // Baris 2: Business Partner
-		 Hlayout row2 = new Hlayout();
-		 row2.setHflex("1");
-		 row2.setSpacing("6px");
-		 lHdrCol2Title.setSclass("wf-field-label wf-label-min");
-		 lHdrCol2.setSclass("wf-field-value");
-		 row2.appendChild(lHdrCol2Title);
-		 row2.appendChild(lHdrCol2);
-		 headerInfoLayout.appendChild(row2);
+		// Line 2: Business Partner
+		Hlayout row2 = new Hlayout();
+		row2.setHflex("1");
+		row2.setSpacing("6px");
+		lHdrCol2Title.setSclass("wf-field-label wf-label-min");
+		lHdrCol2.setSclass("wf-field-value");
+		row2.appendChild(lHdrCol2Title);
+		row2.appendChild(lHdrCol2);
+		headerInfoLayout.appendChild(row2);
 	
-		 // Baris 3: Date
-		 Hlayout row3 = new Hlayout();
-		 row3.setHflex("1");
-		 row3.setSpacing("6px");
-		 lHdrCol3Title.setSclass("wf-field-label wf-label-min");
-		 lHdrCol3.setSclass("wf-field-value");
-		 row3.appendChild(lHdrCol3Title);
-		 row3.appendChild(lHdrCol3);
-		 headerInfoLayout.appendChild(row3);
+		// Line 3: Date
+		Hlayout row3 = new Hlayout();
+		row3.setHflex("1");
+		row3.setSpacing("6px");
+		lHdrCol3Title.setSclass("wf-field-label wf-label-min");
+		lHdrCol3.setSclass("wf-field-value");
+		row3.appendChild(lHdrCol3Title);
+		row3.appendChild(lHdrCol3);
+		headerInfoLayout.appendChild(row3);
 	
-		 // Baris 4: Total
-		 Hlayout row4 = new Hlayout();
-		 row4.setHflex("1");
-		 row4.setSpacing("6px");
-		 lHdrCol4Title.setSclass("wf-field-label wf-label-min");
-		 lHdrCol4.setSclass("wf-field-value wf-value-numeric");
-		 row4.appendChild(lHdrCol4Title);
-		 row4.appendChild(lHdrCol4);
-		 headerInfoLayout.appendChild(row4);
-	
-		 grpTxDetails.appendChild(headerInfoLayout);
+		// Line 4: Total
+		Hlayout row4 = new Hlayout();
+		row4.setHflex("1");
+		row4.setSpacing("6px");
+		lHdrCol4Title.setSclass("wf-field-label wf-label-min");
+		lHdrCol4.setSclass("wf-field-value wf-value-numeric");
+		row4.appendChild(lHdrCol4Title);
+		row4.appendChild(lHdrCol4);
+		headerInfoLayout.appendChild(row4);
+	    grpTxDetails.appendChild(headerInfoLayout);
 		
 	    lstTxLines.setHflex("1");
 	    lstTxLines.setSpan(true);
@@ -372,7 +371,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    grpTxDetails.appendChild(lstTxLines); 
 	    panelLines.appendChild(grpTxDetails); 
 	    
-	    // Part 3.3: Membuat Tabpanel 2 - History
+	    // Part 3.3: Create Tabpanel 2 - History
 	    Tabpanel panelHistory = new Tabpanel(); 
 	    tabpanels.appendChild(panelHistory);  
 	
@@ -409,16 +408,19 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    answerRow.setHflex("1");
 	    answerRow.setValign("middle");
 	    lAnswer.setSclass("wf-field-label wf-margin-right-5");
+		lAnswer.setVisible(false);
 	    answerRow.appendChild(lAnswer);
 	    answerRow.appendChild(fAnswerText);
 	    ZKUpdateUtil.setHflex(fAnswerText, "true");
+		fAnswerText.setVisible(false);
 	    answerRow.appendChild(fAnswerList);
+		fAnswerList.setVisible(false);
 	    answerRow.appendChild(fAnswerButton);
 	    answerRow.appendChild(bZoom);
 	    footerApprovalArea.appendChild(answerRow);
 	    fAnswerButton.addEventListener(Events.ON_CLICK, this);
 	    bZoom.addEventListener(Events.ON_CLICK, this);
-	
+
 	    Vlayout forwardSection = new Vlayout();
 	    forwardSection.setSpacing("5px");
 	    lForward.setSclass("wf-field-label");
