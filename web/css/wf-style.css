@@ -508,52 +508,52 @@
    16. RESPONSIVE MOBILE (max-width: 768px)
    ----------------------------------------------------------------------------- */
 @media (max-width: 768px) {
-
     .wf-chat-area-padding {
         padding: 8px !important;
     }
-
     .wf-card-container {
         padding: 12px;
     }
 
+    /* Jangan paksa width 100% — biarkan ZK yang urus */
+    /* Cukup pastikan collapse button ZK terlihat & touchable */
+    .wf-main-layout .z-west-collapse {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        min-width: 28px !important;
+        min-height: 60px !important;
+        background: #2c3e50 !important;
+        cursor: pointer !important;
+        z-index: 200 !important;
+    }
+
+    .wf-main-layout .z-west-collapse:active {
+        background: #1a252f !important;
+    }
+
+    /* West panel saat collapsed — pastikan tidak makan space */
+    .wf-main-layout .z-west[z-collapsed="true"] {
+        width: auto !important;
+        min-width: 28px !important;
+    }
+
+    /* Label & value di mobile */
     .wf-label-min {
         min-width: 100px !important;
         max-width: 100px !important;
         font-size: 10px !important;
     }
+    .wf-field-value { font-size: 12px !important; }
+    .wf-value-numeric { font-size: 14px !important; }
 
-    .wf-field-value {
-        font-size: 12px !important;
-    }
-
-    .wf-value-numeric {
-        font-size: 14px !important;
-    }
-
-    .wf-main-layout .z-west,
-    .wf-main-layout .z-center {
-        display: block !important;
-        width: 100% !important;
-        position: relative !important;
-        left: 0 !important;
-        top: 0 !important;
-    }
-
-    .wf-west-panel {
-        width: 100% !important;
-        height: auto !important;
-        max-height: 250px;
-        border-bottom: 2px solid #e2e8f0 !important;
-    }
-
+    /* Grid responsive */
     .wf-grid-clean .z-row {
         display: flex;
         flex-direction: column;
         padding: 8px 0;
         border-bottom: 1px dashed #e2e8f0 !important;
     }
-
     .wf-grid-clean .z-cell {
         width: 100% !important;
         padding: 2px 0 !important;
