@@ -251,11 +251,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         // Part 1: West Panel (Approval List)
 	    westPanel = new West();
 	    westPanel.setSize("320px");
-	    westPanel.setSplittable(true);
 	    westPanel.setCollapsible(true);
+		westPanel.setSplittable(true);
+		westPanel.setOpen(true);
 	    westPanel.setTitle("Approval List");
 	    westPanel.setSclass("wf-west-panel"); 
-	    
+		
 	    cardListbox.setSclass("wf-approval-listbox");
 	    cardListbox.setVflex("1");
 	    cardListbox.setHflex("1");
@@ -274,13 +275,13 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    titleNode.setSclass("wf-section-title");
 	    nodeHeader.appendChild(titleNode);
 
-	    bBackToList.setLabel("◀▐▐");
-	    bBackToList.setSclass("wf-btn-back-to-list");
-	    bBackToList.setStyle("margin-left: auto;");
-	    bBackToList.setVisible(false);
-	    bBackToList.addEventListener(Events.ON_CLICK, e -> expandWestPanel());
-	    nodeHeader.appendChild(bBackToList);
-	    nodeApprovalArea.appendChild(nodeHeader);
+	 //   bBackToList.setLabel("◀▐▐");
+	 //  bBackToList.setSclass("wf-btn-back-to-list");
+	 //  bBackToList.setStyle("margin-left: auto;");
+	 //  bBackToList.setVisible(false);
+	 //   bBackToList.addEventListener(Events.ON_CLICK, e -> expandWestPanel());
+	 //   nodeHeader.appendChild(bBackToList);
+	 //   nodeApprovalArea.appendChild(nodeHeader);
 	    
 	    Vlayout nodeGroup = new Vlayout();
 	    nodeGroup.setSpacing("3px");
@@ -561,34 +562,43 @@ public class WWFActivity extends ADForm implements EventListener<Event>
         header.setHflex(ratio); 
         return header;
     }
-  	// Update collapseWestPanel():
-    private void collapseWestPanel() {
-        westPanel.setOpen(false);
-        bBackToList.setVisible(true);
-        Clients.evalJavaScript(
-            "(function(){" +
-            "  var west = document.querySelectorAll('.z-west')[1];" +
-            "  if(!west) return;" +
-            "  var parent = west.parentElement;" +
-            "  parent.style.width = 'auto';" +
-            "  parent.style.display = 'none';" +
-            "})();"
-        );
+
+	private void collapseWestPanel() {
+      westPanel.setOpen(false);
+    // hapus Clients.evalJavaScript sama sekali
     }
 
     private void expandWestPanel() {
-        westPanel.setOpen(true);
-        bBackToList.setVisible(false);
-        Clients.evalJavaScript(
-            "(function(){" +
-            "  var west = document.querySelectorAll('.z-west')[1];" +
-            "  if(!west) return;" +
-            "  var parent = west.parentElement;" +
-            "  parent.style.width = '392px';" +
-            "  parent.style.display = 'block';" +
-            "})();"
-        );
+     westPanel.setOpen(true);
     }
+  	// Update collapseWestPanel():
+//    private void collapseWestPanel() {
+   //     westPanel.setOpen(false);
+     //   bBackToList.setVisible(true);
+    //    Clients.evalJavaScript(
+       //     "(function(){" +
+        //    "  var west = document.querySelectorAll('.z-west')[1];" +
+        //    "  if(!west) return;" +
+        //    "  var parent = west.parentElement;" +
+        //    "  parent.style.width = 'auto';" +
+        //    "  parent.style.display = 'none';" +
+         //   "})();"
+     //   );
+ //   }
+
+  //  private void expandWestPanel() {
+   //     westPanel.setOpen(true);
+    //    bBackToList.setVisible(false);
+     //   Clients.evalJavaScript(
+    //        "(function(){" +
+      //      "  var west = document.querySelectorAll('.z-west')[1];" +
+    //        "  if(!west) return;" +
+     //       "  var parent = west.parentElement;" +
+      //      "  parent.style.width = '392px';" +
+     //       "  parent.style.display = 'block';" +
+    //        "})();"
+   //     );
+  //  }
     
 	@Override
 	public void onEvent(Event event) throws Exception
