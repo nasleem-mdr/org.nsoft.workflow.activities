@@ -379,7 +379,12 @@
     background-color: #b91c1c !important;
     background-image: none !important;
 }
-
+.wf-south-layout {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100%;
+}
 /* -----------------------------------------------------------------------------
    12. TOMBOL BACK TO LIST
    ----------------------------------------------------------------------------- */
