@@ -289,18 +289,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    fDescription.setReadonly(true);
 	    fDescription.setSclass("wf-field-input-readonly wf-min-height-40");
 	    nodeApprovalArea.appendChild(descGroup);
-
-	    Vlayout helpGroup = new Vlayout();
-	    helpGroup.setSpacing("3px");
-	    lHelp.setSclass("wf-field-label");
-	    helpGroup.appendChild(lHelp);
-	    helpGroup.appendChild(fHelp);
-	    ZKUpdateUtil.setHflex(fHelp, "true");
-	    fHelp.setMultiline(true);
-	    fHelp.setRows(2);
-	    fHelp.setReadonly(true);
-	    fHelp.setSclass("wf-field-input-readonly wf-help-text");
-	    nodeApprovalArea.appendChild(helpGroup);
 	
 	    // Part 3.1: Structure Main Tabbox
 	    
@@ -325,18 +313,19 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    headerInfoLayout.setHflex("1");
 	    headerInfoLayout.setSpacing("4px");
 		headerInfoLayout.setSclass("wf-header-info");
+		
 		// Baris 1: No. Dokumen
-		Hlayout row1 = new Hlayout();
-		row1.setHflex("1");
-		row1.setSpacing("0px");
-		lHdrCol1Title.setSclass("wf-field-label wf-label-min");
-		lHdrCol1.setSclass("wf-field-value");
-		Label sep1 = new Label(":");
-		sep1.setSclass("wf-label-sep");
-		row1.appendChild(lHdrCol1Title);
-		row1.appendChild(sep1);
-		row1.appendChild(lHdrCol1);
-		headerInfoLayout.appendChild(row1);
+		//Hlayout row1 = new Hlayout();
+		//row1.setHflex("1");
+		//row1.setSpacing("0px");
+		//lHdrCol1Title.setSclass("wf-field-label wf-label-min");
+		//lHdrCol1.setSclass("wf-field-value");
+		//Label sep1 = new Label(":");
+		//sep1.setSclass("wf-label-sep");
+		//row1.appendChild(lHdrCol1Title);
+		//row1.appendChild(sep1);
+		//row1.appendChild(lHdrCol1);
+		//headerInfoLayout.appendChild(row1);
 
 		// Baris 2: Business Partner
 		Hlayout row2 = new Hlayout();
