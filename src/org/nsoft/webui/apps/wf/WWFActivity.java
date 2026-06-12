@@ -155,7 +155,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
     private Label lHdrCol2      = new Label();
     private Label lHdrCol3      = new Label();
     private Label lHdrCol4      = new Label();
-	private Label lHdrCol1Title = new Label("No. Document");
+	private Label lHdrCol1Title = new Label("Document Non");
     private Label lHdrCol2Title = new Label("Business Partner");
     private Label lHdrCol3Title = new Label("Date");
     private Label lHdrCol4Title = new Label("Total");
