@@ -46,6 +46,7 @@ import org.adempiere.webui.util.ZKUpdateUtil;
 import org.adempiere.webui.window.Dialog;
 import org.compiere.model.MColumn;
 import org.compiere.model.MLookup;
+import org.compiere.model.MTable;
 import org.compiere.model.MLookupFactory;
 import org.compiere.model.MRefList;
 import org.compiere.model.SystemIDs;
@@ -164,7 +165,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	private WFTransactionDetailRenderer txRenderer;
 	private West westPanel = new West();
 	private org.zkoss.zul.Listbox cardListbox = new org.zkoss.zul.Listbox();
-
+	private Tab tabDetail = new Tab("Detail");
+	
 	private Hlayout createModernActionButtons() {
        Hlayout buttonLayout = new Hlayout();
        buttonLayout.setHflex("1");
@@ -301,10 +303,12 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    nodeApprovalArea.appendChild(helpGroup);
 	
 	    // Part 3.1: Structure Main Tabbox
+	    
 	    tabboxDetail.setSclass("wf-tabbox-custom"); 
 	    Tabs tabs = new Tabs();
-	    tabs.appendChild(new Tab("Detail Transaksi")); 
-	    tabs.appendChild(new Tab("Riwayat"));          
+	    tabs.appendChild(tabDetail);   
+	    tabs.appendChild(new Tab(Msg.translate(Env.getCtx(), "History")));
+	    tabs.appendChild(new Tab(Msg.translate(Env.getCtx(), "Help")));
 	    tabboxDetail.appendChild(tabs);       
 	    tabboxDetail.appendChild(tabpanels);  
 	
@@ -321,46 +325,58 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    headerInfoLayout.setHflex("1");
 	    headerInfoLayout.setSpacing("4px");
 		headerInfoLayout.setSclass("wf-header-info");
-	
-		// Line 1: DocumentNo
+		// Baris 1: No. Dokumen
 		Hlayout row1 = new Hlayout();
 		row1.setHflex("1");
-		row1.setSpacing("6px");
+		row1.setSpacing("0px");
 		lHdrCol1Title.setSclass("wf-field-label wf-label-min");
 		lHdrCol1.setSclass("wf-field-value");
-	    row1.appendChild(lHdrCol1Title);
+		Label sep1 = new Label(":");
+		sep1.setSclass("wf-label-sep");
+		row1.appendChild(lHdrCol1Title);
+		row1.appendChild(sep1);
 		row1.appendChild(lHdrCol1);
 		headerInfoLayout.appendChild(row1);
-	
-		// Line 2: Business Partner
+
+		// Baris 2: Business Partner
 		Hlayout row2 = new Hlayout();
 		row2.setHflex("1");
-		row2.setSpacing("6px");
+		row2.setSpacing("0px");
 		lHdrCol2Title.setSclass("wf-field-label wf-label-min");
 		lHdrCol2.setSclass("wf-field-value");
+		Label sep2 = new Label(":");
+		sep2.setSclass("wf-label-sep");
 		row2.appendChild(lHdrCol2Title);
+		row2.appendChild(sep2);
 		row2.appendChild(lHdrCol2);
 		headerInfoLayout.appendChild(row2);
-	
-		// Line 3: Date
+
+		// Baris 3: Date
 		Hlayout row3 = new Hlayout();
 		row3.setHflex("1");
-		row3.setSpacing("6px");
+		row3.setSpacing("0px");
 		lHdrCol3Title.setSclass("wf-field-label wf-label-min");
 		lHdrCol3.setSclass("wf-field-value");
+		Label sep3 = new Label(":");
+		sep3.setSclass("wf-label-sep");
 		row3.appendChild(lHdrCol3Title);
+		row3.appendChild(sep3);
 		row3.appendChild(lHdrCol3);
 		headerInfoLayout.appendChild(row3);
-	
-		// Line 4: Total
+
+		// Baris 4: Total
 		Hlayout row4 = new Hlayout();
 		row4.setHflex("1");
-		row4.setSpacing("6px");
+		row4.setSpacing("0px");
 		lHdrCol4Title.setSclass("wf-field-label wf-label-min");
 		lHdrCol4.setSclass("wf-field-value wf-value-numeric");
+		Label sep4 = new Label(":");
+		sep4.setSclass("wf-label-sep");
 		row4.appendChild(lHdrCol4Title);
+		row4.appendChild(sep4);
 		row4.appendChild(lHdrCol4);
 		headerInfoLayout.appendChild(row4);
+		
 	    grpTxDetails.appendChild(headerInfoLayout);
 		
 	    lstTxLines.setHflex("1");
@@ -373,7 +389,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    // Part 3.3: Create Tabpanel 2 - History
 	    Tabpanel panelHistory = new Tabpanel(); 
 	    tabpanels.appendChild(panelHistory);  
-	
+	    
 	    Vlayout historyLayout = new Vlayout();
 	    historyLayout.setHflex("1");
 	    historyLayout.setSpacing("5px");
@@ -382,7 +398,21 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    historyLayout.appendChild(fHistory);
 	    fHistory.setSclass("wf-history-textarea");
 	    panelHistory.appendChild(historyLayout);
-	
+	 // Part 3.4: Tabpanel 3 - Help — BARU
+	    Tabpanel panelHelp = new Tabpanel();
+	    tabpanels.appendChild(panelHelp);
+
+	    Vlayout helpTabLayout = new Vlayout();
+	    helpTabLayout.setHflex("1");
+	    helpTabLayout.setSpacing("5px");
+	    helpTabLayout.appendChild(fHelp);           // ← pindahkan fHelp ke sini
+	    fHelp.setMultiline(true);
+	    fHelp.setRows(5);
+	    fHelp.setReadonly(true);
+	    fHelp.setHflex("true");
+	    fHelp.setSclass("wf-field-input-readonly wf-help-text");
+	    panelHelp.appendChild(helpTabLayout);
+	    
 	    // Part 4: Center Panel - Approval Action (Footer)
 	    Vlayout footerApprovalArea = new Vlayout();
 	    footerApprovalArea.setHflex("1");
@@ -402,39 +432,32 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    ZKUpdateUtil.setWidth(fTextMsg, "100%");
 	    fTextMsg.setSclass("wf-textarea-action");
 	    footerApprovalArea.appendChild(msgGroup);
-	
-	    Hlayout answerRow = new Hlayout();
-	    answerRow.setHflex("1");
-	    answerRow.setValign("middle");
-	    lAnswer.setSclass("wf-field-label wf-margin-right-5");
-		lAnswer.setVisible(false);
-	    answerRow.appendChild(lAnswer);
-	    answerRow.appendChild(fAnswerText);
-	    ZKUpdateUtil.setHflex(fAnswerText, "true");
-		fAnswerText.setVisible(false);
-	    answerRow.appendChild(fAnswerList);
-		fAnswerList.setVisible(false);
-	    answerRow.appendChild(fAnswerButton);
-	    answerRow.appendChild(bZoom);
-	    footerApprovalArea.appendChild(answerRow);
+	    
+	    fTextMsg.setSclass("wf-textarea-action");
+	    footerApprovalArea.appendChild(msgGroup);
+
+	    // Sembunyikan answer components — digantikan Approve/Reject
+	    fAnswerText.setVisible(false);
+	    fAnswerList.setVisible(false);
+	    fAnswerButton.setVisible(false);
 	    fAnswerButton.addEventListener(Events.ON_CLICK, this);
 	    bZoom.addEventListener(Events.ON_CLICK, this);
 
+	    // Forward section — bZoom dipindah ke sebelah bOK bRefresh
 	    Vlayout forwardSection = new Vlayout();
 	    forwardSection.setSpacing("5px");
 	    lForward.setSclass("wf-field-label");
 	    forwardSection.appendChild(lForward);
-	    
+
 	    Hlayout forwardActions = new Hlayout();
 	    forwardActions.setHflex("1");
 	    forwardActions.setValign("middle");
 	    forwardActions.appendChild(fForward.getComponent());
-	    forwardActions.appendChild(bOK);
+	    forwardActions.appendChild(bZoom);
 	    forwardActions.appendChild(bRefresh);
-	    bOK.addEventListener(Events.ON_CLICK, this);
+	    bOK.addEventListener(Events.ON_CLICK, this); 
 	    bRefresh.addEventListener(Events.ON_CLICK, this);
 	    forwardSection.appendChild(forwardActions);
-	    
 	    footerApprovalArea.appendChild(forwardSection);
 	       	
 	    // Part 5: Main layout
@@ -490,7 +513,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    try (InputStream is = url.openStream();
 	         Scanner sc = new Scanner(is, StandardCharsets.UTF_8)) {
 	        String css = sc.useDelimiter("\\A").next();
-	        // Escape manual — tidak perlu Gson
+	        // Manual escape
 	        String escaped = css
 	            .replace("\\", "\\\\")
 	            .replace("'", "\\'")
@@ -505,11 +528,36 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	        log.log(java.util.logging.Level.WARNING, "Failed to inject style: " + resourcePath, e);
 	    }
 	}
-	
+	private String getTableDisplayName(MWFActivity activity) {
+	    if (activity == null) return "Detail";
+	    try {
+	        MTable table = MTable.get(Env.getCtx(), activity.getAD_Table_ID());
+	        if (table == null) return "Detail";
+	        // Ambil nama table dari AD_Table — sudah di-translate sesuai language
+	        String name = table.get_Translation("Name");
+	        if (name == null || name.trim().isEmpty())
+	            name = table.getName();
+	        return name != null ? name : "Detail";
+	    } catch (Exception e) {
+	        return "Detail";
+	    }
+	}
+	//change two user action[choose yes/no then clik bOK] to one step [choose Approve/Reject] 
 	private void executeApprovalDirectly(boolean isApproved) {
 	    if (m_activity == null) return;
 
 	    try {
+	        // Check forward field
+	        Object forward = fForward.getValue();
+	        
+	        if (forward != null) {
+	            // If forward not null, trigger bOK to process forward
+	            Clients.showBusy(Msg.getMsg(Env.getCtx(), "Processing"));
+	            Events.echoEvent("onOK", this, null);
+	            return;
+	        }
+
+	        // If forward null — process Approve/Reject normally
 	        if (fAnswerList.isVisible() && fAnswerList.getItemCount() > 0) {
 	            String targetValue = isApproved ? "Y" : "N";
 	            boolean itemFound = false;
@@ -531,14 +579,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	            fAnswerText.setText(isApproved ? "Approved" : "Rejected");
 	        }
 
-	        // Expand west panel kembali setelah aksi
-	        expandWestPanel();
-
-	        org.zkoss.zk.ui.event.Event clickEvent = new org.zkoss.zk.ui.event.Event(Events.ON_CLICK, bOK);
-	        org.zkoss.zk.ui.event.Events.sendEvent(bOK, clickEvent);
+	        Clients.showBusy(Msg.getMsg(Env.getCtx(), "Processing"));
+	        Events.echoEvent("onOK", this, null);
 	        
 	    } catch (Exception ex) {
-	        log.log(java.util.logging.Level.SEVERE, "Gagal mengeksekusi aksi tombol persetujuan kustom", ex);
+	        log.log(java.util.logging.Level.SEVERE, "Failed to execute approval", ex);
 	    }
 	}
 	// Helper for flexible header ratio (hflex)
@@ -679,7 +724,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		         summaryLine2 = summary.substring(colonIdx + 1).trim();    
 		     }
 
-	        // Dinamic Badge Color based on priority
+	        // Dynamic Badge Color based on priority
 	        String badgeClass;
 	        if (priorityVal <= 3) {
 	            badgeClass = "wf-priority-green";
@@ -688,19 +733,19 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	        } else {
 	            badgeClass = "wf-priority-red";
 	        }
-
+	        
 	        String html =
-		         "<div class='wf-card-item'>" +
-		         "  <div class='wf-card-priority'>" +
-		         "    <div>Priority :</div>" +
-		         "    <div><span class='wf-card-priority-value " + badgeClass + "'>" + priority + "</span></div>" +
-		         "  </div>" +
-		         "  <div class='wf-card-divider'></div>" +
-		         "  <div class='wf-card-node'>" + nodeName + "</div>" +
-		         "  <div class='wf-card-divider'></div>" +
-		         "  <div class='wf-card-summary'>" + summaryLine1 + "</div>" +
-		         (!summaryLine2.isEmpty() ? "<div class='wf-card-summary-sub'>" + summaryLine2 + "</div>" : "") +
-		         "</div>";
+	            "<div class='wf-card-item'>" +
+	            "  <div class='wf-card-priority'>" +
+	            "    <div>Priority :</div>" +
+	            "    <div><span class='wf-card-priority-value " + badgeClass + "'>" + priority + "</span></div>" +
+	            "  </div>" +
+	            "  <div class='wf-card-divider'></div>" +
+	            "  <div class='wf-card-node'>" + nodeName + "</div>" +
+	            "  <div class='wf-card-divider'></div>" +
+	            "  <div class='wf-card-summary'>" + summaryLine1 + "</div>" +
+	            (!summaryLine2.isEmpty() ? "<div class='wf-card-summary-sub'>" + summaryLine2 + "</div>" : "") +
+	            "</div>";
 
 	        org.zkoss.zul.Listcell cell = new org.zkoss.zul.Listcell();
 	        org.zkoss.zul.Html htmlComp = new org.zkoss.zul.Html();
@@ -842,6 +887,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fAnswerText.setVisible(false);
 		fAnswerList.setVisible(false);
 		fAnswerButton.setVisible(false);
+		tabDetail.setLabel("Detail");
 		if (ThemeManager.isUseFontIconForImage())
 			fAnswerButton.setIconSclass(Icon.getIconSclass(Icon.WINDOW));
 		else
@@ -849,7 +895,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		fTextMsg.setReadonly(!(selIndex >= 0));
 		fTextMsg.setValue("");
 		bZoom.setEnabled(selIndex >= 0);
-		bOK.setEnabled(selIndex >= 0);
+		// bOK.setEnabled(selIndex >= 0); // disabled — bOK hidden, replaced by Approve/Reject buttons
 		fForward.setValue(null);
 		fForward.setReadWrite(selIndex >= 0);
 		
@@ -884,7 +930,8 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 		}
 
 		txRenderer.render(m_activity);
-
+		
+		tabDetail.setLabel(getTableDisplayName(m_activity) + " Detail");
 		fNode.setText (m_activity.getNodeName());
 		fDescription.setValue (m_activity.getNodeDescription());
 		fHelp.setValue (m_activity.getNodeHelp());
