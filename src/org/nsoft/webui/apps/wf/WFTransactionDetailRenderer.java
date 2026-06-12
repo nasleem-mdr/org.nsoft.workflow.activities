@@ -91,13 +91,13 @@ public class WFTransactionDetailRenderer {
     private static final String DEFAULT_COL3_TYPE  = TYPE_NUMERIC;
 
     private static final String DEFAULT_HDR_COL1       = "DocumentNo,Value,Name";
-    private static final String DEFAULT_HDR_COL1_LABEL = "No. Dokumen";
+    private static final String DEFAULT_HDR_COL1_LABEL = "Document No";
 
     private static final String DEFAULT_HDR_COL2       = "C_BPartner_ID>Name";
     private static final String DEFAULT_HDR_COL2_LABEL = "Business Partner";
 
     private static final String DEFAULT_HDR_COL3       = "DateOrdered,DateInvoiced,MovementDate,DateRequired,DateDoc,Created";
-    private static final String DEFAULT_HDR_COL3_LABEL = "Tanggal";
+    private static final String DEFAULT_HDR_COL3_LABEL = "Date";
 
     private static final String DEFAULT_HDR_COL4       = "GrandTotal,TotalLines,-";
     private static final String DEFAULT_HDR_COL4_LABEL = "Total";
@@ -116,7 +116,7 @@ public class WFTransactionDetailRenderer {
     private final Label    lHdrCol3Title;
     private final Label    lHdrCol4Title;
 
-    // CONSTRUCTOR — minimal
+    // CONSTRUCTOR — minimum
     public WFTransactionDetailRenderer(
             Groupbox grpTxDetails,
             Listbox  lstTxLines,
@@ -132,7 +132,7 @@ public class WFTransactionDetailRenderer {
                 lHdrCol4, null);
     }
 
-    // CONSTRUCTOR — lengkap
+    // CONSTRUCTOR — All
     public WFTransactionDetailRenderer(
             Groupbox grpTxDetails,
             Listbox  lstTxLines,
@@ -183,7 +183,7 @@ public class WFTransactionDetailRenderer {
 
             PO headerPO = table.getPO(recordId, null);
             if (headerPO == null) {
-                setGroupboxCaption("Detail (" + tableName + " #" + recordId + " tidak ditemukan)");
+                setGroupboxCaption("Detail (" + tableName + " #" + recordId + " Not Found)");
                 grpTxDetails.setVisible(true);
                 return;
             }
@@ -204,7 +204,7 @@ public class WFTransactionDetailRenderer {
     // PRIVATE — RENDER
     private void renderHeader(PO headerPO, String tableName, int clientId) {
 
-        // HDR_COL1 — No. Dokumen / Kode / Value
+        // HDR_COL1 — Document No / Name / Value
         String hdr1Cfg   = getSysConfig(tableName, HDR_COL1, clientId, DEFAULT_HDR_COL1);
         String hdr1Label = getSysConfig(tableName, HDR_COL1_LABEL, clientId, DEFAULT_HDR_COL1_LABEL);
         String hdr1Val   = resolveColumnValue(headerPO, hdr1Cfg);
@@ -236,7 +236,7 @@ public class WFTransactionDetailRenderer {
         setLabelWithTitle(lHdrCol4, lHdrCol4Title, hdr4Val, hdr4Label);
 
         // Caption groupbox
-        setGroupboxCaption("Detail: " + tableName + "  #" + headerPO.get_ID());
+        setGroupboxCaption("Detail: " + tableName + "  #" + hdr1Val);
     }
 
     private void renderLines(PO headerPO, String tableName, int recordId, int clientId) {
@@ -279,7 +279,7 @@ public class WFTransactionDetailRenderer {
                     .list();
 
             if (lines == null || lines.isEmpty()) {
-                appendInfoRow("(Tidak ada baris detail)");
+                appendInfoRow("(No detail lines)");
                 return;
             }
 
@@ -304,14 +304,13 @@ public class WFTransactionDetailRenderer {
             }
 
         } catch (Exception e) {
-            log.log(Level.WARNING, "renderLines gagal: lineTable=" + lineTable
+            log.log(Level.WARNING, "renderLines failed: lineTable=" + lineTable
                     + " linkCol=" + linkCol + " orderBy=" + orderByCfg, e);
-            appendInfoRow("Error memuat baris: " + e.getMessage());
+            appendInfoRow("Error loading line: " + e.getMessage());
         }
     }
 
     private void renderListhead(String tableName, int clientId) {
-        // Hapus Listhead lama jika ada
         if (lstTxLines.getListhead() != null)
             lstTxLines.removeChild(lstTxLines.getListhead());
 
@@ -329,7 +328,7 @@ public class WFTransactionDetailRenderer {
         head.appendChild(new Listheader(label2));
         head.appendChild(new Listheader(label3));
 
-        lstTxLines.appendChild(head); // <-- CHANGED: was insertBefore(head, getFirstChild())
+        lstTxLines.appendChild(head); 
     }
 
     /**
@@ -343,8 +342,7 @@ public class WFTransactionDetailRenderer {
         String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
         if (lineTable == null) return;
 
-        // [FIX v3.1] Guard ini dipindah ke sini — sebelumnya ada setelah cek linkCol
-        if ("-".equals(lineTable)) return; // <-- CHANGED: posisi dipindah ke atas
+        if ("-".equals(lineTable)) return; 
 
         String linkCol = getSysConfig(tableName, LINK_COL, clientId, null);
         if (isEmpty(linkCol) || "-".equals(linkCol)) {  
@@ -455,7 +453,7 @@ public class WFTransactionDetailRenderer {
     }
 
     /**
-     * Resolve Object asli dari kolom non-FK (untuk Date sebelum diformat).
+     * Resolve original Object from non-FK column (for Date before formatting).
      */
     private Object resolveColumnObject(PO po, String columnDefs) {
         if (columnDefs == null || columnDefs.isEmpty()) return null;
@@ -472,12 +470,12 @@ public class WFTransactionDetailRenderer {
     }
 
     /**
-     * Resolve satu definisi kolom. Mendukung multi-level FK chain.
-     *
-     * Format biasa      : "DocumentNo"
-     * Format FK 1 level : "C_BPartner_ID>Name"
-     * Format FK N level : "C_BPartner_ID>C_BPartner_Location_ID>C_Location_ID>City"
-     */
+    * Resolves a single column definition. Supports multi-level FK chains.
+    *
+    * Regular format: "DocumentNo"
+    * 1-level FK format: "C_BPartner_ID>Name"
+    * 0-level FK format: "C_BPartner_ID>C_BPartner_Location_ID>C_Location_ID>City"
+    */
     private String resolveOneColumn(PO po, String columnDef) {
         if (columnDef == null || columnDef.isEmpty()) return null;
 
@@ -495,8 +493,8 @@ public class WFTransactionDetailRenderer {
 
             int fkId = currentPO.get_ValueAsInt(fkCol);
             if (fkId <= 0) {
-                log.fine("[WFDetail] FK bernilai 0/null pada segment '"
-                        + fkCol + "' di chain '" + columnDef + "'");
+                log.fine("[WFDetail] FK is 0/null in segment '"
+                        + fkCol + "' in chain '" + columnDef + "'");
                 return null;
             }
 
@@ -544,7 +542,7 @@ public class WFTransactionDetailRenderer {
 
         if (!isNumericString(raw)) {
             log.warning("[WFDetail] " + context
-                    + ": nilai '" + raw + "' not numerik."
+                    + ": value '" + raw + "' not numeric."
                     + " Check Configuration _TYPE or column name in SysConfig."
                     + " Displayed as '0'.");
             return "0";
@@ -598,7 +596,7 @@ public class WFTransactionDetailRenderer {
             return sdf.format(date);
 
         } catch (Exception e) {
-            log.warning("[WFDetail] formatDate gagal: " + e.getMessage());
+            log.warning("[WFDetail] formatDate failed: " + e.getMessage());
             return dateObj.toString();
         }
     }
@@ -613,7 +611,7 @@ public class WFTransactionDetailRenderer {
                     return "By: " + name.toString().trim();
             }
         } catch (Exception e) {
-            log.warning("[WFDetail] resolveCreatedByName gagal: " + e.getMessage());
+            log.warning("[WFDetail] resolveCreatedByName failed: " + e.getMessage());
         }
         return "-";
     }
