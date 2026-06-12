@@ -244,17 +244,19 @@ public class WFTransactionDetailRenderer {
         // Caption groupbox
         setGroupboxCaption("Detail: " + tableName + "  #" + hdr1Val);
     }
-
+    
     private void renderLines(PO headerPO, String tableName, int recordId, int clientId) {
 
         String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
         String linkCol   = getSysConfig(tableName, LINK_COL,   clientId, null);
 
+        // [1] If LINE_TABLE is not configured "-" → hide listbox
         if (isEmpty(lineTable) || "-".equals(lineTable)) {
             lstTxLines.setVisible(false);
             return;
         }
 
+        // [2] If LINE_TABLE is configured but LINK_COL not configured "-" → display error message: incomplete configuration 
         if (isEmpty(linkCol) || "-".equals(linkCol)) {
             lstTxLines.setVisible(true);
             renderListhead(tableName, clientId);
@@ -263,13 +265,49 @@ public class WFTransactionDetailRenderer {
             return;
         }
 
+        // [3] Validation: Is LINE_TABLE is real on system
+        MTable mLineTable = MTable.get(Env.getCtx(), lineTable);
+        if (mLineTable == null) {
+            lstTxLines.setVisible(true);
+            renderListhead(tableName, clientId);
+            appendInfoRow("Configuration error: LINE_TABLE '"
+                    + lineTable + "' not found in the system. "
+                    + "Please check SysConfig WF_DETAIL_" + tableName + "_LINE_TABLE.");
+            log.warning("[WFDetail] LINE_TABLE '" + lineTable
+                    + "' not found in system for tableName=" + tableName);
+            return;
+        }
+
+        // [4] Validation: Is LINK_COL really a column and foreign key in the LINE_TABLE table?
+        boolean linkColExists = false;
+        for (MColumn col : mLineTable.getColumns(false)) {
+            if (col.getColumnName().equalsIgnoreCase(linkCol)) {
+                linkColExists = true;
+                break;
+            }
+        }
+
+        if (!linkColExists) {
+            lstTxLines.setVisible(true);
+            renderListhead(tableName, clientId);
+            appendInfoRow("Configuration error: LINK_COL '"
+                    + linkCol + "' does not exist in table '" + lineTable + "'. "
+                    + "Please check SysConfig WF_DETAIL_" + tableName + "_LINK_COL.");
+            log.warning("[WFDetail] LINK_COL '" + linkCol
+                    + "' not found in lineTable='" + lineTable
+                    + "' for tableName=" + tableName);
+            return;
+        }
+
+        // [5] Konfigurasi valid — lanjut render
+        String col1Cfg   = getSysConfig(tableName, COL1,      clientId, DEFAULT_COL1);
+        String col1Type  = getSysConfig(tableName, COL1_TYPE, clientId, DEFAULT_COL1_TYPE);
+
         String col2Cfg   = getSysConfig(tableName, COL2,      clientId, DEFAULT_COL2);
         String col2Type  = getSysConfig(tableName, COL2_TYPE, clientId, DEFAULT_COL2_TYPE);
 
         String col3Cfg   = getSysConfig(tableName, COL3,      clientId, DEFAULT_COL3);
         String col3Type  = getSysConfig(tableName, COL3_TYPE, clientId, DEFAULT_COL3_TYPE);
-
-        String col1Cfg   = getSysConfig(tableName, COL1, clientId, DEFAULT_COL1);
 
         String orderByCfg = getSysConfig(tableName, ORDER_BY, clientId, linkCol);
 
@@ -311,7 +349,15 @@ public class WFTransactionDetailRenderer {
         } catch (Exception e) {
             log.log(Level.WARNING, "renderLines failed: lineTable=" + lineTable
                     + " linkCol=" + linkCol + " orderBy=" + orderByCfg, e);
-            appendInfoRow("Error loading line: " + e.getMessage());
+
+            // Pesan error lebih spesifik jika kemungkinan nama kolom bermasalah
+            String errMsg = e.getMessage();
+            if (errMsg != null && errMsg.toLowerCase().contains("column")) {
+                appendInfoRow("Configuration error: possible invalid column in LINK_COL '"
+                        + linkCol + "' or ORDER_BY '" + orderByCfg
+                        + "' for table '" + lineTable + "'. Detail: " + errMsg);
+            } else {
+                appendInfoRow("Error loading lines: " + errMsg);
         }
     }
 
