@@ -263,7 +263,6 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 
 	    Hlayout nodeHeader = new Hlayout();
 	    nodeHeader.setHflex("1");
-	    nodeHeader.setStyle("display: flex; justify-content: space-between; align-items: center; width: 100%;");
 	    titleNode.setSclass("wf-section-title");
 	    nodeHeader.appendChild(titleNode);
 		nodeApprovalArea.appendChild(nodeHeader);
@@ -676,11 +675,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	
 		     int colonIdx = summary.indexOf(":");
 		     if (colonIdx > 0) {
-		         summaryLine1 = summary.substring(0, colonIdx + 1).trim(); // "Order 80017:"
-		         summaryLine2 = summary.substring(colonIdx + 1).trim();    // "GardenUser Standard"
+		         summaryLine1 = summary.substring(0, colonIdx + 1).trim(); 
+		         summaryLine2 = summary.substring(colonIdx + 1).trim();    
 		     }
 
-	        // Warna badge dinamis berdasarkan nilai priority
+	        // Dinamic Badge Color based on priority
 	        String badgeClass;
 	        if (priorityVal <= 3) {
 	            badgeClass = "wf-priority-green";
