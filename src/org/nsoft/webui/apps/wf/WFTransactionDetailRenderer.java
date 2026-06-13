@@ -25,6 +25,7 @@ import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.CLogger;
 import org.compiere.util.Env;
+import org.compiere.util.Msg;
 import org.compiere.wf.MWFActivity;
 import org.zkoss.zul.Groupbox;
 import org.zkoss.zul.Label;
@@ -79,11 +80,11 @@ public class WFTransactionDetailRenderer {
     private static final String TYPE_STRING    = "string";
 
     // LABEL DISPLAY CONSTANTS
-    private static final int LABEL_MAX_LEN     = 15; // panjang maksimum label sebelum di-truncate
+    private static final int LABEL_MAX_LEN     = 11; // panjang maksimum label sebelum di-truncate
 
     // DEFAULT FALLBACK VALUES (kolom)
     private static final String DEFAULT_COL1       = "M_Product_ID>Name,Description,Name";
-    private static final String DEFAULT_COL1_LABEL = "Deskripsi";
+    private static final String DEFAULT_COL1_LABEL = "Description";
 
     private static final String DEFAULT_COL2       = "QtyOrdered,QtyInvoiced,MovementQty,QtyEntered,Qty";
     private static final String DEFAULT_COL2_LABEL = "Qty";
@@ -200,7 +201,7 @@ public class WFTransactionDetailRenderer {
             grpTxDetails.setVisible(true);
 
         } catch (Exception e) {
-            log.log(Level.SEVERE, "WFTransactionDetailRenderer.render() gagal", e);
+            log.log(Level.SEVERE, "WFTransactionDetailRenderer.render() failed", e);
             setGroupboxCaption("Detail (" + tableName + " #" + recordId
                     + " Error: " + e.getMessage() + ")");
             grpTxDetails.setVisible(true);
@@ -260,8 +261,7 @@ public class WFTransactionDetailRenderer {
         if (isEmpty(linkCol) || "-".equals(linkCol)) {
             lstTxLines.setVisible(true);
             renderListhead(tableName, clientId);
-            appendInfoRow("Incomplete configuration: LINK_COL for "
-                    + tableName + " has not been filled.");
+            appendInfoRow(Msg.getMsg(Env.getCtx(), "WFDetailLineLoadError", new Object[]{tableName}));
             return;
         }
 
@@ -270,9 +270,7 @@ public class WFTransactionDetailRenderer {
         if (mLineTable == null) {
             lstTxLines.setVisible(true);
             renderListhead(tableName, clientId);
-            appendInfoRow("Configuration error: LINE_TABLE '"
-                    + lineTable + "' not found in the system. "
-                    + "Please check SysConfig WF_DETAIL_" + tableName + "_LINE_TABLE.");
+            appendInfoRow(Msg.getMsg(Env.getCtx(), "WFDetailLinkColMissing", new Object[]{tableName}));
             log.warning("[WFDetail] LINE_TABLE '" + lineTable
                     + "' not found in system for tableName=" + tableName);
             return;
@@ -322,7 +320,7 @@ public class WFTransactionDetailRenderer {
                     .list();
 
             if (lines == null || lines.isEmpty()) {
-                appendInfoRow("(No detail lines)");
+                appendInfoRow(Msg.getMsg(Env.getCtx(), "WFDetailNoLines", null));
                 return;
             }
 
@@ -510,10 +508,34 @@ public class WFTransactionDetailRenderer {
 
     // PRIVATE — COLUMN RESOLUTION
     /**
-     * Resolves the String value from a list of columns.
+     * Resolves the String value from a list of column definitions, trying each
+     * candidate in order until one returns a non-empty value.
      *
-     * Use splitColumnDefs(), which splits commas only outside of an FK chain,
-     * so "C_BPartner_ID>Name,Description" stays a single candidate.
+     * The columnDefs string may contain multiple candidates separated by commas.
+     * Each candidate may be either:
+     *   - a plain column name on the given PO, e.g. "Description"
+     *   - a single-level (or multi-level) FK chain, e.g. "C_BPartner_ID>Name"
+     *     or "C_BPartner_ID>C_BPartner_Location_ID>C_Location_ID>City"
+     *
+     * Splitting rule (see splitColumnDefs()):
+     *   A comma ends the current candidate. If the candidate so far contains
+     *   an FK chain ('>'), the comma immediately following the FK target column
+     *   also ends that candidate — i.e. an FK chain segment is NOT combined
+     *   with the next comma-separated token into a single candidate.
+     *
+     * Example: "C_BPartner_ID>Name,Description"
+     *   -> candidate #1: "C_BPartner_ID>Name"   (lookup Name on the linked BPartner)
+     *   -> candidate #2: "Description"          (fallback: Description column on
+     *                                             the ORIGINAL po, not on BPartner)
+     *
+     * Example: "M_Product_ID>Name,Description,Name"
+     *   -> candidate #1: "M_Product_ID>Name"
+     *   -> candidate #2: "Description"
+     *   -> candidate #3: "Name"
+     *
+     * Each candidate is resolved via resolveOneColumn(). The first candidate
+     * that yields a non-null, non-blank trimmed value is returned; if none do,
+     * this method returns null.
      */
     private String resolveColumnValue(PO po, String columnDefs) {
         if (columnDefs == null || columnDefs.isEmpty()) return null;
@@ -775,7 +797,7 @@ public class WFTransactionDetailRenderer {
                     .list();
 
             if (lines == null || lines.isEmpty()) {
-                appendInfoRow("(No detail lines)");
+                appendInfoRow(Msg.getMsg(Env.getCtx(), "WFDetailNoLines", null));
                 return;
             }
 
@@ -1143,7 +1165,7 @@ public class WFTransactionDetailRenderer {
         setLabelWithTitle(lHdrCol3, lHdrCol3Title, "-", "");
         setLabelWithTitle(lHdrCol4, lHdrCol4Title, "-", "");
 
-        setGroupboxCaption("Detail Transaksi");
+        setGroupboxCaption("Transaction Details");
         grpTxDetails.setVisible(false);
     }
 
@@ -1157,12 +1179,12 @@ public class WFTransactionDetailRenderer {
     }
 
     private void appendInfoRow(String message) {
-        Listitem item = new Listitem();
-        item.appendChild(new Listcell(message));
-        item.appendChild(new Listcell("-"));
-        item.appendChild(new Listcell("-"));
-        lstTxLines.appendChild(item);
-    }
+    Listitem item = new Listitem();
+    Listcell cell = new Listcell(message);
+    cell.setSpan(true); 
+    item.appendChild(cell);
+    lstTxLines.appendChild(item);
+}
 
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
