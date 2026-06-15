@@ -5,9 +5,9 @@
  * at Workflow Approval (WWFActivity) Form
  *
  * Architecture : SysConfig-driven + Generic PO + SQL Query
- * Versi        : 4.0 — Auto-label dari AD_Element.PrintName (multi-bahasa),
- *                truncate + tooltip untuk label panjang,
- *                urutan prioritas label: PrintName > SysConfig > DEFAULT > "-"
+ * Versi        : 4.0 — Auto-label dari MTable.getName() (multi-bahasa),
+ *                getLabel() priority chain, validation improvements,
+ *                appendInfoRow colspan fix
  ******************************************************************************/
 package org.nsoft.webui.apps.wf;
 
@@ -25,7 +25,6 @@ import org.compiere.model.PO;
 import org.compiere.model.Query;
 import org.compiere.util.CLogger;
 import org.compiere.util.Env;
-import org.compiere.util.Msg;
 import org.compiere.wf.MWFActivity;
 import org.zkoss.zul.Groupbox;
 import org.zkoss.zul.Label;
@@ -79,12 +78,10 @@ public class WFTransactionDetailRenderer {
     private static final String TYPE_NUMERIC   = "numeric";
     private static final String TYPE_STRING    = "string";
 
-    // LABEL DISPLAY CONSTANTS
-    private static final int LABEL_MAX_LEN     = 11; // panjang maksimum label sebelum di-truncate
-
-    // DEFAULT FALLBACK VALUES (kolom)
+    // DEFAULT FALLBACK VALUES
     private static final String DEFAULT_COL1       = "M_Product_ID>Name,Description,Name";
     private static final String DEFAULT_COL1_LABEL = "Description";
+    private static final String DEFAULT_COL1_TYPE  = TYPE_STRING;
 
     private static final String DEFAULT_COL2       = "QtyOrdered,QtyInvoiced,MovementQty,QtyEntered,Qty";
     private static final String DEFAULT_COL2_LABEL = "Qty";
@@ -106,9 +103,6 @@ public class WFTransactionDetailRenderer {
     private static final String DEFAULT_HDR_COL4       = "GrandTotal,TotalLines,-";
     private static final String DEFAULT_HDR_COL4_LABEL = "Total";
     private static final String DEFAULT_HDR_COL4_TYPE  = TYPE_NUMERIC;
-
-    // COL1 tidak punya DEFAULT_COL1_TYPE karena selalu string
-    private static final String DEFAULT_COL1_TYPE  = TYPE_STRING;
 
     // UI COMPONENTS
     private final Groupbox grpTxDetails;
@@ -160,7 +154,9 @@ public class WFTransactionDetailRenderer {
         this.lHdrCol4Title  = lHdrCol4Title;
     }
 
+    // =========================================================================
     // PUBLIC API
+    // =========================================================================
 
     /**
      * Main entry point. Called from WWFActivity.display() every time
@@ -208,7 +204,10 @@ public class WFTransactionDetailRenderer {
         }
     }
 
+    // =========================================================================
     // PRIVATE — RENDER
+    // =========================================================================
+
     private void renderHeader(PO headerPO, String tableName, int clientId) {
 
         // HDR_COL1 — Document No / Name / Value
@@ -219,7 +218,7 @@ public class WFTransactionDetailRenderer {
             hdr1Val = tableName + " #" + headerPO.get_ID();
         setLabelWithTitle(lHdrCol1, lHdrCol1Title, hdr1Val, hdr1Label);
 
-        // HDR_COL2 — Business Partner / Grup
+        // HDR_COL2 — Business Partner / Group
         String hdr2Cfg   = getSysConfig(tableName, HDR_COL2, clientId, DEFAULT_HDR_COL2);
         String hdr2Label = getLabel(tableName, HDR_COL2_LABEL, clientId, hdr2Cfg, DEFAULT_HDR_COL2_LABEL);
         String hdr2Val   = resolveColumnValue(headerPO, hdr2Cfg);
@@ -237,479 +236,14 @@ public class WFTransactionDetailRenderer {
         // HDR_COL4 — Grand Total / other info (type-aware)
         String hdr4Cfg   = getSysConfig(tableName, HDR_COL4, clientId, DEFAULT_HDR_COL4);
         String hdr4Label = getLabel(tableName, HDR_COL4_LABEL, clientId, hdr4Cfg, DEFAULT_HDR_COL4_LABEL);
-        String hdr4Type  = getSysConfig(tableName, HDR_COL4_TYPE,  clientId, DEFAULT_HDR_COL4_TYPE);
+        String hdr4Type  = getSysConfig(tableName, HDR_COL4_TYPE, clientId, DEFAULT_HDR_COL4_TYPE);
         String hdr4Raw   = resolveColumnValue(headerPO, hdr4Cfg);
         String hdr4Val   = formatByType(hdr4Raw, hdr4Type, "HDR_COL4[" + tableName + "]");
         setLabelWithTitle(lHdrCol4, lHdrCol4Title, hdr4Val, hdr4Label);
 
-        // Caption groupbox
-        setGroupboxCaption("Detail: " + tableName + "  #" + hdr1Val);
-    }
-    
-    private void renderLines(PO headerPO, String tableName, int recordId, int clientId) {
-
-        String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
-        String linkCol   = getSysConfig(tableName, LINK_COL,   clientId, null);
-
-        // [1] If LINE_TABLE is not configured "-" → hide listbox
-        if (isEmpty(lineTable) || "-".equals(lineTable)) {
-            lstTxLines.setVisible(false);
-            return;
-        }
-
-        // [2] If LINE_TABLE is configured but LINK_COL not configured "-" → display error message: incomplete configuration 
-        if (isEmpty(linkCol) || "-".equals(linkCol)) {
-            lstTxLines.setVisible(true);
-            renderListhead(tableName, clientId);
-            appendInfoRow(Msg.getMsg(Env.getCtx(), "WFDetailLineLoadError", new Object[]{tableName}));
-            return;
-        }
-
-        // [3] Validation: Is LINE_TABLE is real on system
-        MTable mLineTable = MTable.get(Env.getCtx(), lineTable);
-        if (mLineTable == null) {
-            lstTxLines.setVisible(true);
-            renderListhead(tableName, clientId);
-            appendInfoRow(Msg.getMsg(Env.getCtx(), "WFDetailLinkColMissing", new Object[]{tableName}));
-            log.warning("[WFDetail] LINE_TABLE '" + lineTable
-                    + "' not found in system for tableName=" + tableName);
-            return;
-        }
-
-        // [4] Validation: Is LINK_COL really a column and foreign key in the LINE_TABLE table?
-        boolean linkColExists = false;
-        for (MColumn col : mLineTable.getColumns(false)) {
-            if (col.getColumnName().equalsIgnoreCase(linkCol)) {
-                linkColExists = true;
-                break;
-            }
-        }
-
-        if (!linkColExists) {
-            lstTxLines.setVisible(true);
-            renderListhead(tableName, clientId);
-            appendInfoRow("Configuration error: LINK_COL '"
-                    + linkCol + "' does not exist in table '" + lineTable + "'. "
-                    + "Please check SysConfig WF_DETAIL_" + tableName + "_LINK_COL.");
-            log.warning("[WFDetail] LINK_COL '" + linkCol
-                    + "' not found in lineTable='" + lineTable
-                    + "' for tableName=" + tableName);
-            return;
-        }
-
-        // [5] Konfigurasi valid — lanjut render
-        String col1Cfg   = getSysConfig(tableName, COL1,      clientId, DEFAULT_COL1);
-        String col1Type  = getSysConfig(tableName, COL1_TYPE, clientId, DEFAULT_COL1_TYPE);
-
-        String col2Cfg   = getSysConfig(tableName, COL2,      clientId, DEFAULT_COL2);
-        String col2Type  = getSysConfig(tableName, COL2_TYPE, clientId, DEFAULT_COL2_TYPE);
-
-        String col3Cfg   = getSysConfig(tableName, COL3,      clientId, DEFAULT_COL3);
-        String col3Type  = getSysConfig(tableName, COL3_TYPE, clientId, DEFAULT_COL3_TYPE);
-
-        String orderByCfg = getSysConfig(tableName, ORDER_BY, clientId, linkCol);
-
-        renderListhead(tableName, clientId);
-        lstTxLines.setVisible(true);
-
-        try {
-            List<PO> lines = new Query(Env.getCtx(), lineTable,
-                    linkCol + " = ?", null)
-                    .setParameters(recordId)
-                    .setOrderBy(orderByCfg)
-                    .list();
-
-            if (lines == null || lines.isEmpty()) {
-                appendInfoRow(Msg.getMsg(Env.getCtx(), "WFDetailNoLines", null));
-                return;
-            }
-
-            for (PO line : lines) {
-
-                String val1 = resolveColumnValue(line, col1Cfg);
-                if (isEmpty(val1)) val1 = "Item #" + line.get_ID();
-
-                String raw2 = resolveColumnValue(line, col2Cfg);
-                String val2 = formatByType(raw2, col2Type,
-                        "COL2[" + tableName + "] line#" + line.get_ID());
-
-                String raw3 = resolveColumnValue(line, col3Cfg);
-                String val3 = formatByType(raw3, col3Type,
-                        "COL3[" + tableName + "] line#" + line.get_ID());
-
-                Listitem item = new Listitem();
-                item.appendChild(new Listcell(val1));
-                item.appendChild(new Listcell(val2));
-                item.appendChild(new Listcell(val3));
-                lstTxLines.appendChild(item);
-            }
-
-            } catch (Exception e) {
-                log.log(Level.WARNING, "renderLines failed: lineTable=" + lineTable
-                        + " linkCol=" + linkCol + " orderBy=" + orderByCfg, e);
-    
-                // Pesan error lebih spesifik jika kemungkinan nama kolom bermasalah
-                String errMsg = e.getMessage();
-                if (errMsg != null && errMsg.toLowerCase().contains("column")) {
-                    appendInfoRow("Configuration error: possible invalid column in LINK_COL '"
-                            + linkCol + "' or ORDER_BY '" + orderByCfg
-                            + "' for table '" + lineTable + "'. Detail: " + errMsg);
-                } else {
-                    appendInfoRow("Error loading lines: " + errMsg);
-            }
-        }
-    }
-    // private void renderListhead(String tableName, int clientId) {
-    //     if (lstTxLines.getListhead() != null)
-    //         lstTxLines.removeChild(lstTxLines.getListhead());
-
-    //     String col1Cfg = getSysConfig(tableName, COL1, clientId, DEFAULT_COL1);
-    //     String col2Cfg = getSysConfig(tableName, COL2, clientId, DEFAULT_COL2);
-    //     String col3Cfg = getSysConfig(tableName, COL3, clientId, DEFAULT_COL3);
-
-    //     String label1 = getLabel(tableName, COL1_LABEL, clientId, col1Cfg, DEFAULT_COL1_LABEL);
-    //     String label2 = getLabel(tableName, COL2_LABEL, clientId, col2Cfg, DEFAULT_COL2_LABEL);
-    //     String label3 = getLabel(tableName, COL3_LABEL, clientId, col3Cfg, DEFAULT_COL3_LABEL);
-
-    //     Listhead head = new Listhead();
-    //     head.setSizable(true);
-    //     head.appendChild(buildListheader(label1));
-    //     head.appendChild(buildListheader(label2));
-    //     head.appendChild(buildListheader(label3));
-
-    //     lstTxLines.appendChild(head);
-    // }
-    private void renderListhead(String tableName, int clientId) {
-        if (lstTxLines.getListhead() != null)
-            lstTxLines.removeChild(lstTxLines.getListhead());
-    
-        String col1Cfg = getSysConfig(tableName, COL1, clientId, DEFAULT_COL1);
-        String col2Cfg = getSysConfig(tableName, COL2, clientId, DEFAULT_COL2);
-        String col3Cfg = getSysConfig(tableName, COL3, clientId, DEFAULT_COL3);
-    
-        String label1 = getLabel(tableName, COL1_LABEL, clientId, col1Cfg, DEFAULT_COL1_LABEL);
-        String label2 = getLabel(tableName, COL2_LABEL, clientId, col2Cfg, DEFAULT_COL2_LABEL);
-        String label3 = getLabel(tableName, COL3_LABEL, clientId, col3Cfg, DEFAULT_COL3_LABEL);
-    
-        if ("-".equals(label1)) label1 = "";
-        if ("-".equals(label2)) label2 = "";
-        if ("-".equals(label3)) label3 = "";
-    
-        Listhead head = new Listhead();
-        head.setSizable(true);
-        head.appendChild(new Listheader(label1));
-        head.appendChild(new Listheader(label2));
-        head.appendChild(new Listheader(label3));
-    
-        lstTxLines.appendChild(head);
-    }
-    /**
-     * Validates SysConfig configuration and logs warnings if inconsistencies are found.
-     */
-    private void validateAndWarnConfig(String tableName, int clientId) {
-        String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
-        if (lineTable == null) return;
-
-        if ("-".equals(lineTable)) return;
-
-        String linkCol = getSysConfig(tableName, LINK_COL, clientId, null);
-        if (isEmpty(linkCol) || "-".equals(linkCol)) {
-            log.warning("[WFDetail] " + tableName
-                    + ": LINE_TABLE=" + lineTable
-                    + " is configured but LINK_COL is empty or '-'."
-                    + " Lines will not be displayed.");
-        }
-
-        String col2Cfg = getSysConfig(tableName, COL2, clientId, null);
-        if (col2Cfg == null)
-            log.info("[WFDetail] " + tableName
-                    + ": COL2 is not configured, using default: " + DEFAULT_COL2);
-
-        String col3Cfg = getSysConfig(tableName, COL3, clientId, null);
-        if (col3Cfg == null)
-            log.info("[WFDetail] " + tableName
-                    + ": COL3 is not configured, using default: " + DEFAULT_COL3);
-
-        String orderBy = getSysConfig(tableName, ORDER_BY, clientId, null);
-        if (orderBy == null)
-            log.info("[WFDetail] " + tableName
-                    + ": ORDER_BY not configured, fallback to LINK_COL=" + linkCol);
-    }
-
-    // PRIVATE — SYSCONFIG
-    private String getSysConfig(String tableName, String suffix,
-                                int clientId, String defaultValue) {
-        String key   = PREFIX + tableName + suffix;
-        String value = MSysConfig.getValue(key, null, clientId);
-        return (value != null && !value.trim().isEmpty())
-                ? value.trim()
-                : defaultValue;
-    }
-
-    // PRIVATE — LABEL RESOLUTION
-    /**
-     * Resolve label tampilan untuk sebuah kolom/header, dengan urutan prioritas:
-     *
-     *   1. AD_Element.PrintName (auto, ikut bahasa user via translasi)
-     *   2. SysConfig "_xxx_LABEL" (override manual admin)
-     *   3. DEFAULT_*_LABEL (hardcoded fallback terakhir)
-     *   4. "-" (jika benar-benar tidak ada apapun)
-     *
-     * Pengecualian: jika admin secara eksplisit mengisi SysConfig "_xxx_LABEL" = "-",
-     * itu dianggap perintah untuk SEMBUNYIKAN label (kembalikan string kosong),
-     * apapun hasil auto-resolve.
-     *
-     * @param columnDefs kolom (atau daftar kolom dengan fallback / FK chain) yang
-     *                    dipakai untuk auto-resolve PrintName.
-     */
-    private String getLabel(String tableName, String labelSuffix, int clientId,
-                             String columnDefs, String defaultLabel) {
-
-        String cfg = getSysConfig(tableName, labelSuffix, clientId, null);
-
-        // Perintah eksplisit untuk menyembunyikan label
-        if ("-".equals(cfg)) return "";
-
-        // 1. Auto dari AD_Element.PrintName (ikut bahasa user)
-        String auto = resolveColumnLabel(tableName, columnDefs);
-        if (!isEmpty(auto)) return auto;
-
-        // 2. Override manual dari SysConfig
-        if (!isEmpty(cfg)) return cfg;
-
-        // 3. Default hardcoded
-        if (!isEmpty(defaultLabel)) return defaultLabel;
-
-        // 4. Benar-benar tidak ada apa-apa
-        return "-";
-    }
-
-    /**
-     * Ambil label dari AD_Element (via AD_Column.PrintName, fallback ke
-     * AD_Element.PrintName) berdasarkan kandidat kolom pertama yang valid
-     * dalam columnDefs. Mendukung FK chain "X_ID>Y" — label diambil dari
-     * kolom Y pada tabel target FK X.
-     */
-    private String resolveColumnLabel(String tableName, String columnDefs) {
-        if (columnDefs == null || columnDefs.isEmpty()) return null;
-
-        for (String candidate : splitColumnDefs(columnDefs)) {
-            candidate = candidate.trim();
-            if (candidate.isEmpty() || "-".equals(candidate)) continue;
-
-            try {
-                String targetTable = tableName;
-                String targetCol   = candidate;
-
-                if (candidate.contains(">")) {
-                    String[] segs = candidate.split(">");
-                    String fkCol  = segs[0].trim();
-                    targetCol     = segs[segs.length - 1].trim();
-                    targetTable   = fkCol.endsWith("_ID")
-                            ? fkCol.substring(0, fkCol.length() - 3)
-                            : fkCol;
-                }
-
-                MColumn col = MColumn.get(Env.getCtx(), targetTable, targetCol);
-                if (col == null) continue;
-
-                // AD_Column.PrintName (sudah otomatis ter-translate sesuai AD_Language user)
-                String label = col.get_Translation(MColumn.COLUMNNAME_PrintName);
-
-                // fallback ke AD_Element.PrintName jika kosong di level AD_Column
-                if (isEmpty(label) && col.getAD_Element() != null)
-                    label = col.getAD_Element().get_Translation(MColumn.COLUMNNAME_PrintName);
-
-                if (!isEmpty(label)) return label.trim();
-
-            } catch (Exception e) {
-                log.fine("[WFDetail] resolveColumnLabel failed for '" + candidate + "': " + e.getMessage());
-            }
-        }
-        return null;
-    }
-
-    // PRIVATE — COLUMN RESOLUTION
-    /**
-     * Resolves the String value from a list of column definitions, trying each
-     * candidate in order until one returns a non-empty value.
-     *
-     * The columnDefs string may contain multiple candidates separated by commas.
-     * Each candidate may be either:
-     *   - a plain column name on the given PO, e.g. "Description"
-     *   - a single-level (or multi-level) FK chain, e.g. "C_BPartner_ID>Name"
-     *     or "C_BPartner_ID>C_BPartner_Location_ID>C_Location_ID>City"
-     *
-     * Splitting rule (see splitColumnDefs()):
-     *   A comma ends the current candidate. If the candidate so far contains
-     *   an FK chain ('>'), the comma immediately following the FK target column
-     *   also ends that candidate — i.e. an FK chain segment is NOT combined
-     *   with the next comma-separated token into a single candidate.
-     *
-     * Example: "C_BPartner_ID>Name,Description"
-     *   -> candidate #1: "C_BPartner_ID>Name"   (lookup Name on the linked BPartner)
-     *   -> candidate #2: "Description"          (fallback: Description column on
-     *                                             the ORIGINAL po, not on BPartner)
-     *
-     * Example: "M_Product_ID>Name,Description,Name"
-     *   -> candidate #1: "M_Product_ID>Name"
-     *   -> candidate #2: "Description"
-     *   -> candidate #3: "Name"
-     *
-     * Each candidate is resolved via resolveOneColumn(). The first candidate
-     * that yields a non-null, non-blank trimmed value is returned; if none do,
-     * this method returns null.
-     */
-    private String resolveColumnValue(PO po, String columnDefs) {
-        if (columnDefs == null || columnDefs.isEmpty()) return null;
-
-        for (String candidate : splitColumnDefs(columnDefs)) {
-            candidate = candidate.trim();
-            if (candidate.isEmpty() || "-".equals(candidate)) continue;
-
-            String value = resolveOneColumn(po, candidate);
-            if (value != null && !value.trim().isEmpty())
-                return value.trim();
-        }
-        return null;
-    }
-
-   private List<String> splitColumnDefs(String columnDefs) {
-    List<String> result = new ArrayList<>();  // ← hapus semua yang ada setelah "<"
-    StringBuilder current = new StringBuilder();
-    boolean insideFKChain = false;
-
-    for (int i = 0; i < columnDefs.length(); i++) {
-        char c = columnDefs.charAt(i);
-
-        if (c == '>') {
-            insideFKChain = true;
-            current.append(c);
-        } else if (c == ',') {
-            if (insideFKChain) {
-                insideFKChain = false;
-                result.add(current.toString());
-                current.setLength(0);
-            } else {
-                result.add(current.toString());
-                current.setLength(0);
-            }
-        } else {
-            current.append(c);
-        }
-    }
-
-    if (current.length() > 0)
-        result.add(current.toString());
-
-    return result;
-}
-
-    // CONSTRUCTOR — All
-    public WFTransactionDetailRenderer(
-            Groupbox grpTxDetails,
-            Listbox  lstTxLines,
-            Label    lHdrCol1,   Label lHdrCol1Title,
-            Label    lHdrCol2,   Label lHdrCol2Title,
-            Label    lHdrCol3,   Label lHdrCol3Title,
-            Label    lHdrCol4,   Label lHdrCol4Title) {
-
-        this.grpTxDetails   = grpTxDetails;
-        this.lstTxLines     = lstTxLines;
-        this.lHdrCol1       = lHdrCol1;
-        this.lHdrCol1Title  = lHdrCol1Title;
-        this.lHdrCol2       = lHdrCol2;
-        this.lHdrCol2Title  = lHdrCol2Title;
-        this.lHdrCol3       = lHdrCol3;
-        this.lHdrCol3Title  = lHdrCol3Title;
-        this.lHdrCol4       = lHdrCol4;
-        this.lHdrCol4Title  = lHdrCol4Title;
-    }
-
-    // PUBLIC API
-
-    /**
-     * Main entry point. Called from WWFActivity.display() every time
-     * an approval item is selected in the left listbox.
-     *
-     * @param activity Active MWFActivity, can be null
-     */
-    public void render(MWFActivity activity) {
-        clearUI();
-
-        if (activity == null || activity.getRecord_ID() <= 0) {
-            grpTxDetails.setVisible(false);
-            return;
-        }
-
-        String tableName = "(unknown)"; 
-        int    recordId  = 0;         
-
-        try {
-            int    clientId  = activity.getAD_Client_ID();
-            int    tableId   = activity.getAD_Table_ID();
-            recordId         = activity.getRecord_ID(); 
-            MTable table     = MTable.get(Env.getCtx(), tableId);
-            tableName        = table.getTableName();    
-
-            validateAndWarnConfig(tableName, clientId);
-
-            PO headerPO = table.getPO(recordId, null);
-            if (headerPO == null) {
-                setGroupboxCaption("Detail (" + tableName + " #" + recordId + " Not Found)");
-                grpTxDetails.setVisible(true);
-                return;
-            }
-
-            renderHeader(headerPO, tableName, clientId);
-            renderLines(headerPO, tableName, recordId, clientId);
-
-            grpTxDetails.setVisible(true);
-
-        } catch (Exception e) {
-            log.log(Level.SEVERE, "WFTransactionDetailRenderer.render() gagal", e);
-            setGroupboxCaption("Detail (" + tableName + " #" + recordId
-                    + " Error: " + e.getMessage() + ")");
-            grpTxDetails.setVisible(true);
-        }
-    }
-
-    // PRIVATE — RENDER
-    private void renderHeader(PO headerPO, String tableName, int clientId) {
-
-        // HDR_COL1 — Document No / Name / Value
-        String hdr1Cfg   = getSysConfig(tableName, HDR_COL1, clientId, DEFAULT_HDR_COL1);
-        String hdr1Label = getSysConfig(tableName, HDR_COL1_LABEL, clientId, DEFAULT_HDR_COL1_LABEL);
-        String hdr1Val   = resolveColumnValue(headerPO, hdr1Cfg);
-        if (isEmpty(hdr1Val))
-            hdr1Val = tableName + " #" + headerPO.get_ID();
-        setLabelWithTitle(lHdrCol1, lHdrCol1Title, hdr1Val, hdr1Label);
-
-        // HDR_COL2 — Business Partner / Grup
-        String hdr2Cfg   = getSysConfig(tableName, HDR_COL2, clientId, DEFAULT_HDR_COL2);
-        String hdr2Label = getSysConfig(tableName, HDR_COL2_LABEL, clientId, DEFAULT_HDR_COL2_LABEL);
-        String hdr2Val   = resolveColumnValue(headerPO, hdr2Cfg);
-        if (isEmpty(hdr2Val))
-            hdr2Val = resolveCreatedByName(headerPO);
-        setLabelWithTitle(lHdrCol2, lHdrCol2Title, hdr2Val, hdr2Label);
-
-        // HDR_COL3 — Date
-        String hdr3Cfg   = getSysConfig(tableName, HDR_COL3, clientId, DEFAULT_HDR_COL3);
-        String hdr3Label = getSysConfig(tableName, HDR_COL3_LABEL, clientId, DEFAULT_HDR_COL3_LABEL);
-        Object rawDate   = resolveColumnObject(headerPO, hdr3Cfg);
-        String hdr3Val   = rawDate != null ? formatDate(rawDate) : "-";
-        setLabelWithTitle(lHdrCol3, lHdrCol3Title, hdr3Val, hdr3Label);
-
-        // HDR_COL4 — Grand Total / other info (type-aware)
-        String hdr4Cfg   = getSysConfig(tableName, HDR_COL4, clientId, DEFAULT_HDR_COL4);
-        String hdr4Label = getSysConfig(tableName, HDR_COL4_LABEL, clientId, DEFAULT_HDR_COL4_LABEL);
-        String hdr4Type  = getSysConfig(tableName, HDR_COL4_TYPE,  clientId, DEFAULT_HDR_COL4_TYPE);
-        String hdr4Raw   = resolveColumnValue(headerPO, hdr4Cfg);
-        String hdr4Val   = formatByType(hdr4Raw, hdr4Type, "HDR_COL4[" + tableName + "]");
-        setLabelWithTitle(lHdrCol4, lHdrCol4Title, hdr4Val, hdr4Label);
-
-        // Caption groupbox
-        setGroupboxCaption("Detail: " + tableName + "  #" + hdr1Val);
+        // Caption groupbox — pakai nama table yang sudah di-translate
+        String tableDisplayName = getTableDisplayName(tableName);
+        setGroupboxCaption("Detail: " + tableDisplayName + " #" + hdr1Val);
     }
 
     private void renderLines(PO headerPO, String tableName, int recordId, int clientId) {
@@ -752,7 +286,7 @@ public class WFTransactionDetailRenderer {
                     .list();
 
             if (lines == null || lines.isEmpty()) {
-                appendInfoRow(Msg.getMsg(Env.getCtx(), "WFDetailNoLines", null));
+                appendInfoRow("(No detail lines)");
                 return;
             }
 
@@ -787,9 +321,13 @@ public class WFTransactionDetailRenderer {
         if (lstTxLines.getListhead() != null)
             lstTxLines.removeChild(lstTxLines.getListhead());
 
-        String label1 = getSysConfig(tableName, COL1_LABEL, clientId, DEFAULT_COL1_LABEL);
-        String label2 = getSysConfig(tableName, COL2_LABEL, clientId, DEFAULT_COL2_LABEL);
-        String label3 = getSysConfig(tableName, COL3_LABEL, clientId, DEFAULT_COL3_LABEL);
+        String col1Cfg = getSysConfig(tableName, COL1, clientId, DEFAULT_COL1);
+        String col2Cfg = getSysConfig(tableName, COL2, clientId, DEFAULT_COL2);
+        String col3Cfg = getSysConfig(tableName, COL3, clientId, DEFAULT_COL3);
+
+        String label1 = getLabel(tableName, COL1_LABEL, clientId, col1Cfg, DEFAULT_COL1_LABEL);
+        String label2 = getLabel(tableName, COL2_LABEL, clientId, col2Cfg, DEFAULT_COL2_LABEL);
+        String label3 = getLabel(tableName, COL3_LABEL, clientId, col3Cfg, DEFAULT_COL3_LABEL);
 
         if ("-".equals(label1)) label1 = "";
         if ("-".equals(label2)) label2 = "";
@@ -801,24 +339,16 @@ public class WFTransactionDetailRenderer {
         head.appendChild(new Listheader(label2));
         head.appendChild(new Listheader(label3));
 
-        lstTxLines.appendChild(head); 
+        lstTxLines.appendChild(head);
     }
 
-    /**
-     * Validates SysConfig configuration and logs warnings if inconsistencies are found.
-     *
-     * [FIX v3.1] Moved the "-".equals(lineTable) guard before the linkCol check.
-     * Previously: The LINK_COL warning was triggered even when lineTable="-" (intentionally disabled).
-     * Now: Performs an early return so that the warning only appears when relevant.
-     */
     private void validateAndWarnConfig(String tableName, int clientId) {
         String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
         if (lineTable == null) return;
-
-        if ("-".equals(lineTable)) return; 
+        if ("-".equals(lineTable)) return;
 
         String linkCol = getSysConfig(tableName, LINK_COL, clientId, null);
-        if (isEmpty(linkCol) || "-".equals(linkCol)) {  
+        if (isEmpty(linkCol) || "-".equals(linkCol)) {
             log.warning("[WFDetail] " + tableName
                     + ": LINE_TABLE=" + lineTable
                     + " is configured but LINK_COL is empty or '-'."
@@ -834,14 +364,17 @@ public class WFTransactionDetailRenderer {
         if (col3Cfg == null)
             log.info("[WFDetail] " + tableName
                     + ": COL3 is not configured, using default: " + DEFAULT_COL3);
-                    
+
         String orderBy = getSysConfig(tableName, ORDER_BY, clientId, null);
         if (orderBy == null)
             log.info("[WFDetail] " + tableName
                     + ": ORDER_BY not configured, fallback to LINK_COL=" + linkCol);
     }
 
+    // =========================================================================
     // PRIVATE — SYSCONFIG
+    // =========================================================================
+
     private String getSysConfig(String tableName, String suffix,
                                 int clientId, String defaultValue) {
         String key   = PREFIX + tableName + suffix;
@@ -851,39 +384,113 @@ public class WFTransactionDetailRenderer {
                 : defaultValue;
     }
 
-    // PRIVATE — COLUMN RESOLUTION
+    // =========================================================================
+    // PRIVATE — LABEL RESOLUTION
+    // =========================================================================
+
     /**
-     * Resolves the String value from a list of columns.
+     * Resolve label with priority:
+     * 1. AD_Element PrintName (auto, follows user language)
+     * 2. SysConfig "_xxx_LABEL" (manual admin override)
+     * 3. DEFAULT_*_LABEL (hardcoded fallback)
+     * 4. "-" (nothing found)
      *
-     * [FIX v3.1] Previously, splitting directly with "," caused an FK chain
-     * like "C_BPartner_ID>Name,Description" to break into two separate candidates:
-     * "C_BPartner_ID>Name" and "Description" — the "Description" segment was then
-     * incorrectly evaluated as a regular column on the wrong PO (header, instead of the target FK).
-     *
-     * Fix: Use splitColumnDefs(), which splits commas only outside of the FK chain.
-     * This ensures "C_BPartner_ID>Name,Description" remains a single candidate, allowing
-     * resolveOneColumn() to properly handle multi-fields on the target FK.
-     *
-     * For multiple fallbacks, use the format: "FieldA,FieldB" (without ">")
-     * so that the split occurs between candidates, not inside a single FK chain.
-     *
-     * Example of a problematic multi-candidate format due to ambiguity:
-     *   "M_Product_ID>Name,Description,Name"
-     *   ← split into three candidates: "M_Product_ID>Name", "Description", "Name"
-     *   (splits because there is no ">" after the comma — ambiguous!)
-     *
-     * Recommended format to avoid ambiguity:
-     *   Use "M_Product_ID>Name" alone for the FK, and handle fallbacks separately in SysConfig.
-     *
-     * Applied split rule:
-     *   Commas act as candidate separators EXCEPT for commas that appear after ">"
-     *   within the same segment (i.e., inside an FK path).
-     *   Implementation: Split on "," that is not preceded by a segment containing ">".
+     * If admin sets SysConfig "_xxx_LABEL" = "-", label is hidden (returns "").
      */
+    private String getLabel(String tableName, String labelSuffix, int clientId,
+                            String columnDefs, String defaultLabel) {
+
+        String cfg = getSysConfig(tableName, labelSuffix, clientId, null);
+
+        // Explicit hide command
+        if ("-".equals(cfg)) return "";
+
+        // 1. Auto from AD_Element PrintName (follows user language)
+        String auto = resolveColumnLabel(tableName, columnDefs);
+        if (!isEmpty(auto)) return auto;
+
+        // 2. Manual override from SysConfig
+        if (!isEmpty(cfg)) return cfg;
+
+        // 3. Hardcoded default
+        if (!isEmpty(defaultLabel)) return defaultLabel;
+
+        // 4. Nothing found
+        return "-";
+    }
+
+    /**
+     * Resolve label from AD_Element (via MColumn.PrintName) based on
+     * the first valid column candidate in columnDefs.
+     * Supports FK chain "X_ID>Y" — label taken from column Y on FK target table X.
+     */
+    private String resolveColumnLabel(String tableName, String columnDefs) {
+        if (columnDefs == null || columnDefs.isEmpty()) return null;
+
+        for (String candidate : splitColumnDefs(columnDefs)) {
+            candidate = candidate.trim();
+            if (candidate.isEmpty() || "-".equals(candidate)) continue;
+
+            try {
+                String targetTable = tableName;
+                String targetCol   = candidate;
+
+                if (candidate.contains(">")) {
+                    String[] segs = candidate.split(">");
+                    String fkCol  = segs[0].trim();
+                    targetCol     = segs[segs.length - 1].trim();
+                    targetTable   = fkCol.endsWith("_ID")
+                            ? fkCol.substring(0, fkCol.length() - 3)
+                            : fkCol;
+                }
+
+                MColumn col = MColumn.get(Env.getCtx(), targetTable, targetCol);
+                if (col == null) continue;
+
+                // Ambil PrintName langsung dari translation MColumn
+                String label = col.get_Translation("PrintName");
+
+                // Fallback ke Name jika PrintName kosong
+                if (isEmpty(label))
+                    label = col.get_Translation("Name");
+
+                // Fallback ke ColumnName jika masih kosong
+                if (isEmpty(label))
+                    label = col.getColumnName();
+
+                if (!isEmpty(label)) return label.trim();
+
+            } catch (Exception e) {
+                log.fine("[WFDetail] resolveColumnLabel failed for '"
+                        + candidate + "': " + e.getMessage());
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Get display name of table from AD_Table (translated).
+     */
+    private String getTableDisplayName(String tableName) {
+        try {
+            MTable table = MTable.get(Env.getCtx(), tableName);
+            if (table == null) return tableName;
+            String name = table.get_Translation("Name");
+            if (isEmpty(name)) name = table.getName();
+            return isEmpty(name) ? tableName : name;
+        } catch (Exception e) {
+            return tableName;
+        }
+    }
+
+    // =========================================================================
+    // PRIVATE — COLUMN RESOLUTION
+    // =========================================================================
+
     private String resolveColumnValue(PO po, String columnDefs) {
         if (columnDefs == null || columnDefs.isEmpty()) return null;
 
-        for (String candidate : splitColumnDefs(columnDefs)) {  
+        for (String candidate : splitColumnDefs(columnDefs)) {
             candidate = candidate.trim();
             if (candidate.isEmpty() || "-".equals(candidate)) continue;
 
@@ -925,16 +532,13 @@ public class WFTransactionDetailRenderer {
         return result;
     }
 
-    /**
-     * Resolve original Object from non-FK column (for Date before formatting).
-     */
     private Object resolveColumnObject(PO po, String columnDefs) {
         if (columnDefs == null || columnDefs.isEmpty()) return null;
 
-        for (String candidate : splitColumnDefs(columnDefs)) {  
+        for (String candidate : splitColumnDefs(columnDefs)) {
             candidate = candidate.trim();
             if (candidate.isEmpty() || "-".equals(candidate)) continue;
-            if (candidate.contains(">")) continue; 
+            if (candidate.contains(">")) continue;
 
             Object val = po.get_Value(candidate);
             if (val != null) return val;
@@ -942,13 +546,6 @@ public class WFTransactionDetailRenderer {
         return null;
     }
 
-    /**
-    * Resolves a single column definition. Supports multi-level FK chains.
-    *
-    * Regular format: "DocumentNo"
-    * 1-level FK format: "C_BPartner_ID>Name"
-    * 0-level FK format: "C_BPartner_ID>C_BPartner_Location_ID>C_Location_ID>City"
-    */
     private String resolveOneColumn(PO po, String columnDef) {
         if (columnDef == null || columnDef.isEmpty()) return null;
 
@@ -1004,8 +601,10 @@ public class WFTransactionDetailRenderer {
         return val != null ? val.toString().trim() : null;
     }
 
+    // =========================================================================
     // PRIVATE — FORMATTING
-    
+    // =========================================================================
+
     private String formatByType(String raw, String type, String context) {
         if (isEmpty(raw) || "-".equals(raw))
             return TYPE_STRING.equals(type) ? "-" : "0";
@@ -1089,8 +688,10 @@ public class WFTransactionDetailRenderer {
         return "-";
     }
 
+    // =========================================================================
     // PRIVATE — UI HELPERS
-    
+    // =========================================================================
+
     private void setLabelWithTitle(Label lValue, Label lTitle,
                                    String value, String title) {
         if (lValue != null)
@@ -1099,28 +700,19 @@ public class WFTransactionDetailRenderer {
             lTitle.setValue(isEmpty(title) || "-".equals(title) ? "" : title);
     }
 
-    /**
-     * Resets all UI components to their initial / empty state.
-     *
-     * [FIX v3.1] Added lstTxLines.setVisible(false).
-     * Previously, the Listbox visibility was not reset, causing the Listbox from
-     * the previous render to remain visible when a new record was selected before
-     * renderLines() determined the correct visibility.
-     */
-
     private void clearUI() {
         List<Listitem> toRemove = new ArrayList<>(lstTxLines.getItems());
         for (Listitem item : toRemove)
             lstTxLines.removeChild(item);
 
-        lstTxLines.setVisible(false); 
+        lstTxLines.setVisible(false);
 
         setLabelWithTitle(lHdrCol1, lHdrCol1Title, "-", "");
         setLabelWithTitle(lHdrCol2, lHdrCol2Title, "-", "");
         setLabelWithTitle(lHdrCol3, lHdrCol3Title, "-", "");
         setLabelWithTitle(lHdrCol4, lHdrCol4Title, "-", "");
 
-        setGroupboxCaption("Transaction Details");
+        setGroupboxCaption("Transaction Detail");
         grpTxDetails.setVisible(false);
     }
 
@@ -1134,12 +726,12 @@ public class WFTransactionDetailRenderer {
     }
 
     private void appendInfoRow(String message) {
-    Listitem item = new Listitem();
-    Listcell cell = new Listcell(message);
-    cell.setSpan(true); 
-    item.appendChild(cell);
-    lstTxLines.appendChild(item);
-}
+        Listitem item = new Listitem();
+        Listcell cell = new Listcell(message);
+        cell.setSpan(3); // colspan 3 untuk 3 kolom — fix dari setSpan(true) yang error
+        item.appendChild(cell);
+        lstTxLines.appendChild(item);
+    }
 
     private boolean isEmpty(String value) {
         return value == null || value.trim().isEmpty();
