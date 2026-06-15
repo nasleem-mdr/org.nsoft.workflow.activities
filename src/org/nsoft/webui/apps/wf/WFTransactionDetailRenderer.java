@@ -33,6 +33,20 @@ import org.zkoss.zul.Listcell;
 import org.zkoss.zul.Listhead;
 import org.zkoss.zul.Listheader;
 import org.zkoss.zul.Listitem;
+import org.zkoss.zk.ui.event.Event;
+import org.zkoss.zk.ui.event.EventListener;
+import org.zkoss.zk.ui.event.Events;
+import org.zkoss.zul.Popup;
+import org.zkoss.zul.Grid;
+import org.zkoss.zul.Row;
+import org.zkoss.zul.Rows;
+import org.zkoss.zul.Columns;
+import org.zkoss.zul.Column;
+import org.zkoss.zul.Vlayout;
+import org.zkoss.zul.Separator;
+import org.compiere.util.DB;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
 
 public class WFTransactionDetailRenderer {
@@ -116,6 +130,11 @@ public class WFTransactionDetailRenderer {
     private final Label    lHdrCol2Title;
     private final Label    lHdrCol3Title;
     private final Label    lHdrCol4Title;
+    // === History Popup ===
+    private Popup  activeHistoryPopup = null;  
+    private String currentTableName   = null;  
+    private int    currentClientId    = 0;
+    private PO     currentHeaderPO    = null;  
 
     // CONSTRUCTOR — minimum
     public WFTransactionDetailRenderer(
@@ -164,46 +183,53 @@ public class WFTransactionDetailRenderer {
      *
      * @param activity Active MWFActivity, can be null
      */
-    public void render(MWFActivity activity) {
+   public void render(MWFActivity activity) {
         clearUI();
-
+        closeActivePopup(); // tutup popup lama kalau ada
+    
         if (activity == null || activity.getRecord_ID() <= 0) {
             grpTxDetails.setVisible(false);
             return;
         }
-
+    
         String tableName = "(unknown)";
         int    recordId  = 0;
-
+    
         try {
-            int    clientId  = activity.getAD_Client_ID();
-            int    tableId   = activity.getAD_Table_ID();
-            recordId         = activity.getRecord_ID();
-            MTable table     = MTable.get(Env.getCtx(), tableId);
-            tableName        = table.getTableName();
-
+            int    clientId = activity.getAD_Client_ID();
+            int    tableId  = activity.getAD_Table_ID();
+            recordId        = activity.getRecord_ID();
+            MTable table    = MTable.get(Env.getCtx(), tableId);
+            tableName       = table.getTableName();
+    
+            // ★ simpan konteks untuk dipakai popup
+            this.currentTableName = tableName;
+            this.currentClientId  = clientId;
+    
             validateAndWarnConfig(tableName, clientId);
-
+    
             PO headerPO = table.getPO(recordId, null);
             if (headerPO == null) {
                 setGroupboxCaption("Detail (" + tableName + " #" + recordId + " Not Found)");
                 grpTxDetails.setVisible(true);
                 return;
             }
-
+    
+            // ★ simpan header PO untuk konteks popup
+            this.currentHeaderPO = headerPO;
+    
             renderHeader(headerPO, tableName, clientId);
             renderLines(headerPO, tableName, recordId, clientId);
-
+    
             grpTxDetails.setVisible(true);
-
+    
         } catch (Exception e) {
-            log.log(Level.SEVERE, "WFTransactionDetailRenderer.render() failed", e);
+            log.log(Level.SEVERE, "WFTransactionDetailRenderer.render() gagal", e);
             setGroupboxCaption("Detail (" + tableName + " #" + recordId
                     + " Error: " + e.getMessage() + ")");
             grpTxDetails.setVisible(true);
         }
     }
-
     // =========================================================================
     // PRIVATE — RENDER
     // =========================================================================
@@ -292,31 +318,358 @@ public class WFTransactionDetailRenderer {
 
             for (PO line : lines) {
 
-                String val1 = resolveColumnValue(line, col1Cfg);
-                if (isEmpty(val1)) val1 = "Item #" + line.get_ID();
+    String val1 = resolveColumnValue(line, col1Cfg);
+    if (isEmpty(val1)) val1 = "Item #" + line.get_ID();
 
-                String raw2 = resolveColumnValue(line, col2Cfg);
-                String val2 = formatByType(raw2, col2Type,
-                        "COL2[" + tableName + "] line#" + line.get_ID());
+    String raw2 = resolveColumnValue(line, col2Cfg);
+    String val2 = formatByType(raw2, col2Type,
+            "COL2[" + tableName + "] line#" + line.get_ID());
 
-                String raw3 = resolveColumnValue(line, col3Cfg);
-                String val3 = formatByType(raw3, col3Type,
-                        "COL3[" + tableName + "] line#" + line.get_ID());
+    String raw3 = resolveColumnValue(line, col3Cfg);
+    String val3 = formatByType(raw3, col3Type,
+            "COL3[" + tableName + "] line#" + line.get_ID());
 
-                Listitem item = new Listitem();
-                item.appendChild(new Listcell(val1));
-                item.appendChild(new Listcell(val2));
-                item.appendChild(new Listcell(val3));
-                lstTxLines.appendChild(item);
+    Listitem item = new Listitem();
+    item.appendChild(new Listcell(val1));
+    item.appendChild(new Listcell(val2));
+    item.appendChild(new Listcell(val3));
+
+    // ★ styling agar terlihat clickable
+    item.setStyle("cursor:pointer;");
+    item.setTooltiptext("Klik untuk melihat riwayat item ini");
+
+    // ★ capture final reference untuk lambda
+    final PO linePO    = line;
+    final String label = val1;
+
+    item.addEventListener(Events.ON_CLICK, event -> {
+        closeActivePopup();
+        showHistoryPopup(linePO, label, (org.zkoss.zk.ui.Component) event.getTarget());
+    });
+
+        lstTxLines.appendChild(item);
+    }
+            } catch (Exception e) {
+                log.log(Level.WARNING, "renderLines failed: lineTable=" + lineTable
+                        + " linkCol=" + linkCol + " orderBy=" + orderByCfg, e);
+                appendInfoRow("Error loading line: " + e.getMessage());
             }
-
+    }
+    /**
+     * Menampilkan popup riwayat harga & dokumen untuk line PO yang diklik.
+     * Query: cari dokumen lain yang mengandung produk/item yang sama,
+     *        ambil harga, qty, dan info header dokumennya.
+     *
+     * @param linePO    PO dari baris line yang diklik
+     * @param itemLabel label teks item untuk judul popup
+     * @param anchor    komponen ZK sebagai anchor posisi popup
+     */
+    private void showHistoryPopup(PO linePO, String itemLabel, org.zkoss.zk.ui.Component anchor) {
+    
+        // --- Tentukan product ID dari line ---
+        // Coba kolom umum: M_Product_ID, C_Charge_ID, dll.
+        int productId = linePO.get_ValueAsInt("M_Product_ID");
+    
+        // --- Build popup container ---
+        Popup popup = new Popup();
+        popup.setStyle(
+            "background:var(--color-surface,#fff);" +
+            "border:1px solid var(--color-border,#d1d5db);" +
+            "border-radius:8px;" +
+            "box-shadow:0 4px 16px rgba(0,0,0,0.12);" +
+            "padding:0;" +
+            "min-width:380px;" +
+            "max-width:520px;"
+        );
+    
+        Vlayout layout = new Vlayout();
+        layout.setStyle("padding:12px 14px; gap:0;");
+    
+        // --- Judul popup ---
+        Label title = new Label("📋 Riwayat: " + itemLabel);
+        title.setStyle(
+            "font-weight:700;" +
+            "font-size:13px;" +
+            "color:var(--color-text,#111827);" +
+            "display:block;" +
+            "margin-bottom:8px;" +
+            "padding-bottom:6px;" +
+            "border-bottom:1px solid var(--color-border,#e5e7eb);"
+        );
+        layout.appendChild(title);
+    
+        // --- Query data historis ---
+        if (productId > 0) {
+            List<HistoryRow> rows = queryProductHistory(linePO, productId);
+            appendHistoryGrid(layout, rows, linePO.get_ID());
+        } else {
+            // Fallback: item bukan product (misal charge) — tampilkan info terbatas
+            Label noProduct = new Label("ℹ️ Item ini tidak memiliki M_Product_ID.");
+            noProduct.setStyle("color:#6b7280;font-size:12px;");
+            layout.appendChild(noProduct);
+        }
+    
+        // --- Tombol tutup ---
+        Separator sep = new Separator();
+        sep.setStyle("margin:8px 0 4px;");
+        layout.appendChild(sep);
+    
+        org.zkoss.zul.Button btnClose = new org.zkoss.zul.Button("Tutup");
+        btnClose.setStyle(
+            "font-size:11px;padding:2px 10px;" +
+            "border-radius:4px;cursor:pointer;"
+        );
+        btnClose.addEventListener(Events.ON_CLICK, e -> closeActivePopup());
+        layout.appendChild(btnClose);
+    
+        popup.appendChild(layout);
+    
+        // --- Attach ke halaman dan tampilkan ---
+        anchor.getPage().addComponent(popup);   // wajib: attach ke page sebelum open()
+    
+        activeHistoryPopup = popup;
+        popup.open(anchor, "after_start");
+    }
+    
+    /**
+     * Query riwayat harga & dokumen dari line table yang sama,
+     * untuk product yang sama, dari dokumen lain (bukan dokumen current).
+     *
+     * Strategi:
+     *  1. Ambil line table dari SysConfig (sama dengan yang sedang dirender)
+     *  2. Query line WHERE M_Product_ID = ? AND <LinkCol> != currentHeaderId
+     *  3. JOIN ke header PO untuk ambil DocumentNo, Date, BPartner
+     *
+     * @param currentLine  PO line yang sedang diklik (untuk exclude dokumen saat ini)
+     * @param productId    M_Product_ID yang dicari riwayatnya
+     * @return list baris riwayat, max 10 terakhir
+     */
+    private List<HistoryRow> queryProductHistory(PO currentLine, int productId) {
+        List<HistoryRow> result = new ArrayList<>();
+    
+        if (isEmpty(currentTableName)) return result;
+    
+        String lineTable = getSysConfig(currentTableName, LINE_TABLE, currentClientId, null);
+        String linkCol   = getSysConfig(currentTableName, LINK_COL,   currentClientId, null);
+    
+        if (isEmpty(lineTable) || "-".equals(lineTable)
+                || isEmpty(linkCol)   || "-".equals(linkCol)) {
+            log.info("[WFDetail][History] Skipping history — LINE_TABLE/LINK_COL not configured.");
+            return result;
+        }
+    
+        // Ambil kolom qty & price dari SysConfig — pakai COL2/COL3 yang sudah ada
+        String col2Cfg  = getSysConfig(currentTableName, COL2, currentClientId, DEFAULT_COL2);
+        String col3Cfg  = getSysConfig(currentTableName, COL3, currentClientId, DEFAULT_COL3);
+    
+        // Resolve nama kolom aktual (ambil kandidat pertama yang tidak FK-chain)
+        String qtyCol   = resolveFirstSimpleColumn(col2Cfg);
+        String priceCol = resolveFirstSimpleColumn(col3Cfg);
+    
+        // Kolom header yang akan di-join
+        String hdrDocNoCfg = getSysConfig(currentTableName, HDR_COL1, currentClientId, DEFAULT_HDR_COL1);
+        String hdrDateCfg  = getSysConfig(currentTableName, HDR_COL3, currentClientId, DEFAULT_HDR_COL3);
+    
+        String hdrDocNoCol = resolveFirstSimpleColumn(hdrDocNoCfg);
+        String hdrDateCol  = resolveFirstSimpleColumn(hdrDateCfg);
+    
+        // Current header ID untuk di-exclude dari hasil (dokumen saat ini)
+        int currentHeaderId = currentHeaderPO != null ? currentHeaderPO.get_ID() : 0;
+    
+        // --- Build query ---
+        // SELECT line.qty, line.price, header.docno, header.date, header.bpartner_name
+        // FROM lineTable line
+        // LEFT JOIN headerTable header ON header.id = line.linkCol
+        // WHERE line.M_Product_ID = ? AND line.linkCol != currentHeaderId
+        // AND line.AD_Client_ID = ?
+        // ORDER BY header.date DESC LIMIT 10
+    
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT ");
+        if (!isEmpty(qtyCol))   sql.append("l.").append(qtyCol).append(", ");
+        if (!isEmpty(priceCol)) sql.append("l.").append(priceCol).append(", ");
+        if (!isEmpty(hdrDocNoCol)) sql.append("h.").append(hdrDocNoCol).append(", ");
+        if (!isEmpty(hdrDateCol))  sql.append("h.").append(hdrDateCol).append(", ");
+        // BPartner — cek apakah header punya C_BPartner_ID (common pattern)
+        sql.append("h.C_BPartner_ID ");
+        sql.append("FROM ").append(lineTable).append(" l ");
+        sql.append("LEFT JOIN ").append(currentTableName).append(" h ");
+        sql.append("ON h.").append(currentTableName).append("_ID = l.").append(linkCol).append(" ");
+        sql.append("WHERE l.M_Product_ID = ? ");
+        if (currentHeaderId > 0)
+            sql.append("AND l.").append(linkCol).append(" != ? ");
+        sql.append("AND l.AD_Client_ID = ? ");
+        sql.append("AND l.IsActive = 'Y' ");
+        sql.append("ORDER BY h.").append(!isEmpty(hdrDateCol) ? hdrDateCol : "Created").append(" DESC ");
+        sql.append("LIMIT 10");
+    
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+    
+        try {
+            pstmt = DB.prepareStatement(sql.toString(), null);
+            int idx = 1;
+            pstmt.setInt(idx++, productId);
+            if (currentHeaderId > 0)
+                pstmt.setInt(idx++, currentHeaderId);
+            pstmt.setInt(idx, currentClientId);
+    
+            rs = pstmt.executeQuery();
+    
+            while (rs.next()) {
+                HistoryRow row = new HistoryRow();
+    
+                // Qty
+                if (!isEmpty(qtyCol)) {
+                    Object qtyVal = rs.getObject(qtyCol);
+                    row.qty = qtyVal != null ? formatAmount(qtyVal.toString(), "history.qty") : "-";
+                }
+    
+                // Price
+                if (!isEmpty(priceCol)) {
+                    Object priceVal = rs.getObject(priceCol);
+                    row.price = priceVal != null ? formatAmount(priceVal.toString(), "history.price") : "-";
+                }
+    
+                // DocumentNo
+                if (!isEmpty(hdrDocNoCol)) {
+                    Object docNo = rs.getObject(hdrDocNoCol);
+                    row.documentNo = docNo != null ? docNo.toString() : "-";
+                }
+    
+                // Date
+                if (!isEmpty(hdrDateCol)) {
+                    Object dateObj = rs.getObject(hdrDateCol);
+                    row.date = dateObj != null ? formatDate(dateObj) : "-";
+                }
+    
+                // BPartner name — resolve via PO jika ada C_BPartner_ID
+                try {
+                    int bpId = rs.getInt("C_BPartner_ID");
+                    if (bpId > 0) {
+                        MTable bpTable = MTable.get(Env.getCtx(), "C_BPartner");
+                        PO bpPO = bpTable.getPO(bpId, null);
+                        if (bpPO != null) {
+                            Object bpName = bpPO.get_Value("Name");
+                            row.bpartner = bpName != null ? bpName.toString() : "-";
+                        }
+                    }
+                } catch (Exception ignored) {
+                    row.bpartner = "-";
+                }
+    
+                result.add(row);
+            }
+    
         } catch (Exception e) {
-            log.log(Level.WARNING, "renderLines failed: lineTable=" + lineTable
-                    + " linkCol=" + linkCol + " orderBy=" + orderByCfg, e);
-            appendInfoRow("Error loading line: " + e.getMessage());
+            log.log(Level.WARNING, "[WFDetail][History] Query history gagal: " + e.getMessage(), e);
+        } finally {
+            DB.close(rs, pstmt);
+        }
+    
+        return result;
+    }
+    
+    /**
+     * Render tabel riwayat ke dalam layout popup.
+     */
+    private void appendHistoryGrid(Vlayout layout, List<HistoryRow> rows, int currentLineId) {
+    
+        if (rows == null || rows.isEmpty()) {
+            Label empty = new Label("Belum ada riwayat transaksi untuk item ini.");
+            empty.setStyle("color:#6b7280;font-size:12px;font-style:italic;");
+            layout.appendChild(empty);
+            return;
+        }
+    
+        // Sub-judul
+        Label subTitle = new Label("📊 " + rows.size() + " transaksi terakhir:");
+        subTitle.setStyle("font-size:11px;color:#6b7280;margin-bottom:6px;display:block;");
+        layout.appendChild(subTitle);
+    
+        // Grid
+        Grid grid = new Grid();
+        grid.setStyle(
+            "width:100%;" +
+            "font-size:12px;" +
+            "border-collapse:collapse;"
+        );
+        grid.setSclass("history-popup-grid");
+    
+        // Header kolom
+        Columns cols = new Columns();
+        String[] headers = {"No. Dokumen", "Tanggal", "Business Partner", "Qty", "Harga"};
+        String[] widths  = {"22%",          "16%",     "28%",              "14%", "20%"};
+        for (int i = 0; i < headers.length; i++) {
+            Column col = new Column(headers[i]);
+            col.setWidth(widths[i]);
+            col.setStyle("font-size:11px;color:#374151;background:#f3f4f6;padding:4px 6px;");
+            cols.appendChild(col);
+        }
+        grid.appendChild(cols);
+    
+        // Rows
+        Rows rowsComp = new Rows();
+        for (HistoryRow hr : rows) {
+            Row row = new Row();
+            row.setStyle("border-bottom:1px solid #f3f4f6;");
+    
+            appendCell(row, isEmpty(hr.documentNo) ? "-" : hr.documentNo,
+                    "color:#1d4ed8;font-weight:600;");           // DocNo — biru
+            appendCell(row, isEmpty(hr.date)       ? "-" : hr.date,       "");
+            appendCell(row, isEmpty(hr.bpartner)   ? "-" : hr.bpartner,   "");
+            appendCell(row, isEmpty(hr.qty)        ? "-" : hr.qty,
+                    "text-align:right;");
+            appendCell(row, isEmpty(hr.price)      ? "-" : hr.price,
+                    "text-align:right;font-weight:600;color:#065f46;"); // Harga — hijau
+    
+            rowsComp.appendChild(row);
+        }
+        grid.appendChild(rowsComp);
+        layout.appendChild(grid);
+    }
+    
+    /** Helper: append cell ke Row dengan style opsional. */
+    private void appendCell(Row row, String value, String style) {
+        org.zkoss.zul.Cell cell = new org.zkoss.zul.Cell();
+        cell.setStyle("padding:4px 6px;" + (isEmpty(style) ? "" : style));
+        Label lbl = new Label(value);
+        cell.appendChild(lbl);
+        row.appendChild(cell);
+    }
+    
+    /** Ambil nama kolom pertama yang bukan FK-chain (tidak ada '>') dari candidateDefs. */
+    private String resolveFirstSimpleColumn(String columnDefs) {
+        if (isEmpty(columnDefs)) return null;
+        for (String candidate : splitColumnDefs(columnDefs)) {
+            candidate = candidate.trim();
+            if (!candidate.isEmpty() && !"-".equals(candidate) && !candidate.contains(">"))
+                return candidate;
+        }
+        return null;
+    }
+    
+    /** Tutup dan hapus popup yang sedang aktif. */
+    private void closeActivePopup() {
+        if (activeHistoryPopup != null) {
+            try {
+                if (activeHistoryPopup.getPage() != null)
+                    activeHistoryPopup.getPage().removeComponent(activeHistoryPopup);
+                activeHistoryPopup.detach();
+            } catch (Exception ignored) {}
+            activeHistoryPopup = null;
         }
     }
-
+    
+    /** Data class sederhana untuk satu baris riwayat. */
+    private static class HistoryRow {
+        String documentNo = "-";
+        String date       = "-";
+        String bpartner   = "-";
+        String qty        = "-";
+        String price      = "-";
+    }
+        
     private void renderListhead(String tableName, int clientId) {
         if (lstTxLines.getListhead() != null)
             lstTxLines.removeChild(lstTxLines.getListhead());
@@ -342,6 +695,7 @@ public class WFTransactionDetailRenderer {
         lstTxLines.appendChild(head);
     }
 
+    
     private void validateAndWarnConfig(String tableName, int clientId) {
         String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
         if (lineTable == null) return;
@@ -701,6 +1055,7 @@ public class WFTransactionDetailRenderer {
     }
 
     private void clearUI() {
+        closeActivePopup();
         List<Listitem> toRemove = new ArrayList<>(lstTxLines.getItems());
         for (Listitem item : toRemove)
             lstTxLines.removeChild(item);
