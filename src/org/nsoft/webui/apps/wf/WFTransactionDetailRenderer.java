@@ -444,7 +444,7 @@ public class WFTransactionDetailRenderer {
      * @param productId    M_Product_ID yang dicari riwayatnya
      * @return list baris riwayat, max 10 terakhir
      */
-    private List<HistoryRow> queryProductHistory(PO currentLine, int productId) {
+        private List<HistoryRow> queryProductHistory(PO currentLine, int productId) {
         List<HistoryRow> result = new ArrayList<>();
     
         if (isEmpty(currentTableName)) return result;
@@ -458,50 +458,38 @@ public class WFTransactionDetailRenderer {
             return result;
         }
     
-        // Ambil kolom qty & price dari SysConfig — pakai COL2/COL3 yang sudah ada
         String col2Cfg  = getSysConfig(currentTableName, COL2, currentClientId, DEFAULT_COL2);
         String col3Cfg  = getSysConfig(currentTableName, COL3, currentClientId, DEFAULT_COL3);
     
-        // Resolve nama kolom aktual (ambil kandidat pertama yang tidak FK-chain)
         String qtyCol   = resolveFirstSimpleColumn(col2Cfg);
         String priceCol = resolveFirstSimpleColumn(col3Cfg);
     
-        // Kolom header yang akan di-join
         String hdrDocNoCfg = getSysConfig(currentTableName, HDR_COL1, currentClientId, DEFAULT_HDR_COL1);
         String hdrDateCfg  = getSysConfig(currentTableName, HDR_COL3, currentClientId, DEFAULT_HDR_COL3);
     
         String hdrDocNoCol = resolveFirstSimpleColumn(hdrDocNoCfg);
         String hdrDateCol  = resolveFirstSimpleColumn(hdrDateCfg);
     
-        // Current header ID untuk di-exclude dari hasil (dokumen saat ini)
         int currentHeaderId = currentHeaderPO != null ? currentHeaderPO.get_ID() : 0;
-    
-        // --- Build query ---
-        // SELECT line.qty, line.price, header.docno, header.date, header.bpartner_name
-        // FROM lineTable line
-        // LEFT JOIN headerTable header ON header.id = line.linkCol
-        // WHERE line.M_Product_ID = ? AND line.linkCol != currentHeaderId
-        // AND line.AD_Client_ID = ?
-        // ORDER BY header.date DESC LIMIT 10
     
         StringBuilder sql = new StringBuilder();
         sql.append("SELECT ");
-        if (!isEmpty(qtyCol))   sql.append("l.").append(qtyCol).append(", ");
-        if (!isEmpty(priceCol)) sql.append("l.").append(priceCol).append(", ");
+        if (!isEmpty(qtyCol))      sql.append("l.").append(qtyCol).append(", ");
+        if (!isEmpty(priceCol))    sql.append("l.").append(priceCol).append(", ");
         if (!isEmpty(hdrDocNoCol)) sql.append("h.").append(hdrDocNoCol).append(", ");
         if (!isEmpty(hdrDateCol))  sql.append("h.").append(hdrDateCol).append(", ");
-        // BPartner — cek apakah header punya C_BPartner_ID (common pattern)
-        sql.append("h.C_BPartner_ID ");
+        sql.append("bp.Name AS BPartnerName ");                              // ★ JOIN langsung
         sql.append("FROM ").append(lineTable).append(" l ");
         sql.append("LEFT JOIN ").append(currentTableName).append(" h ");
         sql.append("ON h.").append(currentTableName).append("_ID = l.").append(linkCol).append(" ");
+        sql.append("LEFT JOIN C_BPartner bp ON bp.C_BPartner_ID = h.C_BPartner_ID "); // ★ JOIN
         sql.append("WHERE l.M_Product_ID = ? ");
         if (currentHeaderId > 0)
             sql.append("AND l.").append(linkCol).append(" != ? ");
         sql.append("AND l.AD_Client_ID = ? ");
         sql.append("AND l.IsActive = 'Y' ");
         sql.append("ORDER BY h.").append(!isEmpty(hdrDateCol) ? hdrDateCol : "Created").append(" DESC ");
-        sql.append("LIMIT 10");
+        sql.append("LIMIT 3");                                               // ★ max 3
     
         PreparedStatement pstmt = null;
         ResultSet rs = null;
@@ -519,44 +507,29 @@ public class WFTransactionDetailRenderer {
             while (rs.next()) {
                 HistoryRow row = new HistoryRow();
     
-                // Qty
                 if (!isEmpty(qtyCol)) {
                     Object qtyVal = rs.getObject(qtyCol);
                     row.qty = qtyVal != null ? formatAmount(qtyVal.toString(), "history.qty") : "-";
                 }
     
-                // Price
                 if (!isEmpty(priceCol)) {
                     Object priceVal = rs.getObject(priceCol);
                     row.price = priceVal != null ? formatAmount(priceVal.toString(), "history.price") : "-";
                 }
     
-                // DocumentNo
                 if (!isEmpty(hdrDocNoCol)) {
                     Object docNo = rs.getObject(hdrDocNoCol);
                     row.documentNo = docNo != null ? docNo.toString() : "-";
                 }
     
-                // Date
                 if (!isEmpty(hdrDateCol)) {
                     Object dateObj = rs.getObject(hdrDateCol);
                     row.date = dateObj != null ? formatDate(dateObj) : "-";
                 }
     
-                // BPartner name — resolve via PO jika ada C_BPartner_ID
-                try {
-                    int bpId = rs.getInt("C_BPartner_ID");
-                    if (bpId > 0) {
-                        MTable bpTable = MTable.get(Env.getCtx(), "C_BPartner");
-                        PO bpPO = bpTable.getPO(bpId, null);
-                        if (bpPO != null) {
-                            Object bpName = bpPO.get_Value("Name");
-                            row.bpartner = bpName != null ? bpName.toString() : "-";
-                        }
-                    }
-                } catch (Exception ignored) {
-                    row.bpartner = "-";
-                }
+                // ★ Langsung dari JOIN — tidak ada query tambahan
+                String bpName = rs.getString("BPartnerName");
+                row.bpartner = bpName != null ? bpName : "-";
     
                 result.add(row);
             }
@@ -569,7 +542,7 @@ public class WFTransactionDetailRenderer {
     
         return result;
     }
-    
+        
     /**
      * Render tabel riwayat ke dalam layout popup.
      */
@@ -583,7 +556,7 @@ public class WFTransactionDetailRenderer {
         }
     
         // Sub-judul
-        Label subTitle = new Label("📊 " + rows.size() + " transaksi terakhir:");
+        Label subTitle = new Label("📊 " + rows.size() + " transaksi terakhir (maks. 3):");
         subTitle.setStyle("font-size:11px;color:#6b7280;margin-bottom:6px;display:block;");
         layout.appendChild(subTitle);
     
