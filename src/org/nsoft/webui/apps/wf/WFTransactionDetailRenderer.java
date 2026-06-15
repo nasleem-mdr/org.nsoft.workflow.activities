@@ -344,42 +344,65 @@ public class WFTransactionDetailRenderer {
                 lstTxLines.appendChild(item);
             }
 
-        } catch (Exception e) {
-            log.log(Level.WARNING, "renderLines failed: lineTable=" + lineTable
-                    + " linkCol=" + linkCol + " orderBy=" + orderByCfg, e);
-
-            // Pesan error lebih spesifik jika kemungkinan nama kolom bermasalah
-            String errMsg = e.getMessage();
-            if (errMsg != null && errMsg.toLowerCase().contains("column")) {
-                appendInfoRow("Configuration error: possible invalid column in LINK_COL '"
-                        + linkCol + "' or ORDER_BY '" + orderByCfg
-                        + "' for table '" + lineTable + "'. Detail: " + errMsg);
-            } else {
-                appendInfoRow("Error loading lines: " + errMsg);
+            } catch (Exception e) {
+                log.log(Level.WARNING, "renderLines failed: lineTable=" + lineTable
+                        + " linkCol=" + linkCol + " orderBy=" + orderByCfg, e);
+    
+                // Pesan error lebih spesifik jika kemungkinan nama kolom bermasalah
+                String errMsg = e.getMessage();
+                if (errMsg != null && errMsg.toLowerCase().contains("column")) {
+                    appendInfoRow("Configuration error: possible invalid column in LINK_COL '"
+                            + linkCol + "' or ORDER_BY '" + orderByCfg
+                            + "' for table '" + lineTable + "'. Detail: " + errMsg);
+                } else {
+                    appendInfoRow("Error loading lines: " + errMsg);
+            }
         }
     }
+    // private void renderListhead(String tableName, int clientId) {
+    //     if (lstTxLines.getListhead() != null)
+    //         lstTxLines.removeChild(lstTxLines.getListhead());
 
+    //     String col1Cfg = getSysConfig(tableName, COL1, clientId, DEFAULT_COL1);
+    //     String col2Cfg = getSysConfig(tableName, COL2, clientId, DEFAULT_COL2);
+    //     String col3Cfg = getSysConfig(tableName, COL3, clientId, DEFAULT_COL3);
+
+    //     String label1 = getLabel(tableName, COL1_LABEL, clientId, col1Cfg, DEFAULT_COL1_LABEL);
+    //     String label2 = getLabel(tableName, COL2_LABEL, clientId, col2Cfg, DEFAULT_COL2_LABEL);
+    //     String label3 = getLabel(tableName, COL3_LABEL, clientId, col3Cfg, DEFAULT_COL3_LABEL);
+
+    //     Listhead head = new Listhead();
+    //     head.setSizable(true);
+    //     head.appendChild(buildListheader(label1));
+    //     head.appendChild(buildListheader(label2));
+    //     head.appendChild(buildListheader(label3));
+
+    //     lstTxLines.appendChild(head);
+    // }
     private void renderListhead(String tableName, int clientId) {
         if (lstTxLines.getListhead() != null)
             lstTxLines.removeChild(lstTxLines.getListhead());
-
+    
         String col1Cfg = getSysConfig(tableName, COL1, clientId, DEFAULT_COL1);
         String col2Cfg = getSysConfig(tableName, COL2, clientId, DEFAULT_COL2);
         String col3Cfg = getSysConfig(tableName, COL3, clientId, DEFAULT_COL3);
-
+    
         String label1 = getLabel(tableName, COL1_LABEL, clientId, col1Cfg, DEFAULT_COL1_LABEL);
         String label2 = getLabel(tableName, COL2_LABEL, clientId, col2Cfg, DEFAULT_COL2_LABEL);
         String label3 = getLabel(tableName, COL3_LABEL, clientId, col3Cfg, DEFAULT_COL3_LABEL);
-
+    
+        if ("-".equals(label1)) label1 = "";
+        if ("-".equals(label2)) label2 = "";
+        if ("-".equals(label3)) label3 = "";
+    
         Listhead head = new Listhead();
         head.setSizable(true);
-        head.appendChild(buildListheader(label1));
-        head.appendChild(buildListheader(label2));
-        head.appendChild(buildListheader(label3));
-
+        head.appendChild(new Listheader(label1));
+        head.appendChild(new Listheader(label2));
+        head.appendChild(new Listheader(label3));
+    
         lstTxLines.appendChild(head);
     }
-
     /**
      * Validates SysConfig configuration and logs warnings if inconsistencies are found.
      */
@@ -551,104 +574,36 @@ public class WFTransactionDetailRenderer {
         return null;
     }
 
-    private List<String> splitColumnDefs(String columnDefs) {
-        List<String> result = new ArrayList<public class WFTransactionDetailRenderer {
+   private List<String> splitColumnDefs(String columnDefs) {
+    List<String> result = new ArrayList<>();  // ← hapus semua yang ada setelah "<"
+    StringBuilder current = new StringBuilder();
+    boolean insideFKChain = false;
 
-    private static final CLogger log = CLogger.getCLogger(WFTransactionDetailRenderer.class);
+    for (int i = 0; i < columnDefs.length(); i++) {
+        char c = columnDefs.charAt(i);
 
-    // SYSCONFIG KEY CONSTANTS
-    private static final String PREFIX         = "WF_DETAIL_";
-
-    // --- Line table ---
-    private static final String LINE_TABLE     = "_LINE_TABLE";
-    private static final String LINK_COL       = "_LINK_COL";
-    private static final String ORDER_BY       = "_ORDER_BY";
-
-    // --- Line columns ---
-    private static final String COL1           = "_COL1";
-    private static final String COL1_LABEL     = "_COL1_LABEL";
-    private static final String COL1_TYPE      = "_COL1_TYPE";
-
-    private static final String COL2           = "_COL2";
-    private static final String COL2_LABEL     = "_COL2_LABEL";
-    private static final String COL2_TYPE      = "_COL2_TYPE";
-
-    private static final String COL3           = "_COL3";
-    private static final String COL3_LABEL     = "_COL3_LABEL";
-    private static final String COL3_TYPE      = "_COL3_TYPE";
-
-    // --- Header fields ---
-    private static final String HDR_COL1       = "_HDR_COL1";
-    private static final String HDR_COL1_LABEL = "_HDR_COL1_LABEL";
-
-    private static final String HDR_COL2       = "_HDR_COL2";
-    private static final String HDR_COL2_LABEL = "_HDR_COL2_LABEL";
-
-    private static final String HDR_COL3       = "_HDR_COL3";
-    private static final String HDR_COL3_LABEL = "_HDR_COL3_LABEL";
-
-    private static final String HDR_COL4       = "_HDR_COL4";
-    private static final String HDR_COL4_LABEL = "_HDR_COL4_LABEL";
-    private static final String HDR_COL4_TYPE  = "_HDR_COL4_TYPE";
-
-    // TYPE CONSTANTS
-    private static final String TYPE_NUMERIC   = "numeric";
-    private static final String TYPE_STRING    = "string";
-
-    // DEFAULT FALLBACK VALUES
-    private static final String DEFAULT_COL1       = "M_Product_ID>Name,Description,Name";
-    private static final String DEFAULT_COL1_LABEL = "Deskripsi";
-    private static final String DEFAULT_COL1_TYPE  = TYPE_STRING;
-
-    private static final String DEFAULT_COL2       = "QtyOrdered,QtyInvoiced,MovementQty,QtyEntered,Qty";
-    private static final String DEFAULT_COL2_LABEL = "Qty";
-    private static final String DEFAULT_COL2_TYPE  = TYPE_NUMERIC;
-
-    private static final String DEFAULT_COL3       = "LineNetAmt,PriceActual,-";
-    private static final String DEFAULT_COL3_LABEL = "Amount";
-    private static final String DEFAULT_COL3_TYPE  = TYPE_NUMERIC;
-
-    private static final String DEFAULT_HDR_COL1       = "DocumentNo,Value,Name";
-    private static final String DEFAULT_HDR_COL1_LABEL = "Document No";
-
-    private static final String DEFAULT_HDR_COL2       = "C_BPartner_ID>Name";
-    private static final String DEFAULT_HDR_COL2_LABEL = "Business Partner";
-
-    private static final String DEFAULT_HDR_COL3       = "DateOrdered,DateInvoiced,MovementDate,DateRequired,DateDoc,Created";
-    private static final String DEFAULT_HDR_COL3_LABEL = "Date";
-
-    private static final String DEFAULT_HDR_COL4       = "GrandTotal,TotalLines,-";
-    private static final String DEFAULT_HDR_COL4_LABEL = "Total";
-    private static final String DEFAULT_HDR_COL4_TYPE  = TYPE_NUMERIC;
-
-    // UI COMPONENTS
-    private final Groupbox grpTxDetails;
-    private final Listbox  lstTxLines;
-    private final Label    lHdrCol1;
-    private final Label    lHdrCol2;
-    private final Label    lHdrCol3;
-    private final Label    lHdrCol4;
-
-    private final Label    lHdrCol1Title;
-    private final Label    lHdrCol2Title;
-    private final Label    lHdrCol3Title;
-    private final Label    lHdrCol4Title;
-
-    // CONSTRUCTOR — minimum
-    public WFTransactionDetailRenderer(
-            Groupbox grpTxDetails,
-            Listbox  lstTxLines,
-            Label    lHdrCol1,
-            Label    lHdrCol2,
-            Label    lHdrCol3,
-            Label    lHdrCol4) {
-
-        this(grpTxDetails, lstTxLines,
-                lHdrCol1, null,
-                lHdrCol2, null,
-                lHdrCol3, null,
-                lHdrCol4, null);
+        if (c == '>') {
+            insideFKChain = true;
+            current.append(c);
+        } else if (c == ',') {
+            if (insideFKChain) {
+                insideFKChain = false;
+                result.add(current.toString());
+                current.setLength(0);
+            } else {
+                result.add(current.toString());
+                current.setLength(0);
+            }
+        } else {
+            current.append(c);
+        }
     }
+
+    if (current.length() > 0)
+        result.add(current.toString());
+
+    return result;
+}
 
     // CONSTRUCTOR — All
     public WFTransactionDetailRenderer(
