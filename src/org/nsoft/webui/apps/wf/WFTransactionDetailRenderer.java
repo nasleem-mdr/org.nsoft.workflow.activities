@@ -130,12 +130,9 @@ public class WFTransactionDetailRenderer {
     private final Label    lHdrCol2Title;
     private final Label    lHdrCol3Title;
     private final Label    lHdrCol4Title;
-    // === History Popup ===
-    private Popup  activeHistoryPopup = null;  
-    private String currentTableName   = null;  
-    private int    currentClientId    = 0;
-    private PO     currentHeaderPO    = null;  
-
+      
+    // WFHistoryPopupHandler
+    private final WFHistoryPopupHandler historyHandler = new WFHistoryPopupHandler();
     // CONSTRUCTOR — minimum
     public WFTransactionDetailRenderer(
             Groupbox grpTxDetails,
@@ -341,12 +338,11 @@ public class WFTransactionDetailRenderer {
     // ★ capture final reference untuk lambda
     final PO linePO    = line;
     final String label = val1;
-
+    // renderLines() onClick:
     item.addEventListener(Events.ON_CLICK, event -> {
-        closeActivePopup();
-        showHistoryPopup(linePO, label, (org.zkoss.zk.ui.Component) event.getTarget());
+        historyHandler.open(linePO, label, item,
+                        currentTableName, currentClientId, currentHeaderPO);
     });
-
         lstTxLines.appendChild(item);
     }
             } catch (Exception e) {
@@ -431,217 +427,6 @@ public class WFTransactionDetailRenderer {
         popup.open(anchor, "after_start");
     }
     
-    /**
-     * Query riwayat harga & dokumen dari line table yang sama,
-     * untuk product yang sama, dari dokumen lain (bukan dokumen current).
-     *
-     * Strategi:
-     *  1. Ambil line table dari SysConfig (sama dengan yang sedang dirender)
-     *  2. Query line WHERE M_Product_ID = ? AND <LinkCol> != currentHeaderId
-     *  3. JOIN ke header PO untuk ambil DocumentNo, Date, BPartner
-     *
-     * @param currentLine  PO line yang sedang diklik (untuk exclude dokumen saat ini)
-     * @param productId    M_Product_ID yang dicari riwayatnya
-     * @return list baris riwayat, max 10 terakhir
-     */
-        private List<HistoryRow> queryProductHistory(PO currentLine, int productId) {
-        List<HistoryRow> result = new ArrayList<>();
-    
-        if (isEmpty(currentTableName)) return result;
-    
-        String lineTable = getSysConfig(currentTableName, LINE_TABLE, currentClientId, null);
-        String linkCol   = getSysConfig(currentTableName, LINK_COL,   currentClientId, null);
-    
-        if (isEmpty(lineTable) || "-".equals(lineTable)
-                || isEmpty(linkCol)   || "-".equals(linkCol)) {
-            log.info("[WFDetail][History] Skipping history — LINE_TABLE/LINK_COL not configured.");
-            return result;
-        }
-    
-        String col2Cfg  = getSysConfig(currentTableName, COL2, currentClientId, DEFAULT_COL2);
-        String col3Cfg  = getSysConfig(currentTableName, COL3, currentClientId, DEFAULT_COL3);
-    
-        String qtyCol   = resolveFirstSimpleColumn(col2Cfg);
-        String priceCol = resolveFirstSimpleColumn(col3Cfg);
-    
-        String hdrDocNoCfg = getSysConfig(currentTableName, HDR_COL1, currentClientId, DEFAULT_HDR_COL1);
-        String hdrDateCfg  = getSysConfig(currentTableName, HDR_COL3, currentClientId, DEFAULT_HDR_COL3);
-    
-        String hdrDocNoCol = resolveFirstSimpleColumn(hdrDocNoCfg);
-        String hdrDateCol  = resolveFirstSimpleColumn(hdrDateCfg);
-    
-        int currentHeaderId = currentHeaderPO != null ? currentHeaderPO.get_ID() : 0;
-    
-        StringBuilder sql = new StringBuilder();
-        sql.append("SELECT ");
-        if (!isEmpty(qtyCol))      sql.append("l.").append(qtyCol).append(", ");
-        if (!isEmpty(priceCol))    sql.append("l.").append(priceCol).append(", ");
-        if (!isEmpty(hdrDocNoCol)) sql.append("h.").append(hdrDocNoCol).append(", ");
-        if (!isEmpty(hdrDateCol))  sql.append("h.").append(hdrDateCol).append(", ");
-        sql.append("bp.Name AS BPartnerName ");                              // ★ JOIN langsung
-        sql.append("FROM ").append(lineTable).append(" l ");
-        sql.append("LEFT JOIN ").append(currentTableName).append(" h ");
-        sql.append("ON h.").append(currentTableName).append("_ID = l.").append(linkCol).append(" ");
-        sql.append("LEFT JOIN C_BPartner bp ON bp.C_BPartner_ID = h.C_BPartner_ID "); // ★ JOIN
-        sql.append("WHERE l.M_Product_ID = ? ");
-        if (currentHeaderId > 0)
-            sql.append("AND l.").append(linkCol).append(" != ? ");
-        sql.append("AND l.AD_Client_ID = ? ");
-        sql.append("AND l.IsActive = 'Y' ");
-        sql.append("ORDER BY h.").append(!isEmpty(hdrDateCol) ? hdrDateCol : "Created").append(" DESC ");
-        sql.append("LIMIT 3");                                               // ★ max 3
-    
-        PreparedStatement pstmt = null;
-        ResultSet rs = null;
-    
-        try {
-            pstmt = DB.prepareStatement(sql.toString(), null);
-            int idx = 1;
-            pstmt.setInt(idx++, productId);
-            if (currentHeaderId > 0)
-                pstmt.setInt(idx++, currentHeaderId);
-            pstmt.setInt(idx, currentClientId);
-    
-            rs = pstmt.executeQuery();
-    
-            while (rs.next()) {
-                HistoryRow row = new HistoryRow();
-    
-                if (!isEmpty(qtyCol)) {
-                    Object qtyVal = rs.getObject(qtyCol);
-                    row.qty = qtyVal != null ? formatAmount(qtyVal.toString(), "history.qty") : "-";
-                }
-    
-                if (!isEmpty(priceCol)) {
-                    Object priceVal = rs.getObject(priceCol);
-                    row.price = priceVal != null ? formatAmount(priceVal.toString(), "history.price") : "-";
-                }
-    
-                if (!isEmpty(hdrDocNoCol)) {
-                    Object docNo = rs.getObject(hdrDocNoCol);
-                    row.documentNo = docNo != null ? docNo.toString() : "-";
-                }
-    
-                if (!isEmpty(hdrDateCol)) {
-                    Object dateObj = rs.getObject(hdrDateCol);
-                    row.date = dateObj != null ? formatDate(dateObj) : "-";
-                }
-    
-                // ★ Langsung dari JOIN — tidak ada query tambahan
-                String bpName = rs.getString("BPartnerName");
-                row.bpartner = bpName != null ? bpName : "-";
-    
-                result.add(row);
-            }
-    
-        } catch (Exception e) {
-            log.log(Level.WARNING, "[WFDetail][History] Query history gagal: " + e.getMessage(), e);
-        } finally {
-            DB.close(rs, pstmt);
-        }
-    
-        return result;
-    }
-        
-    /**
-     * Render tabel riwayat ke dalam layout popup.
-     */
-    private void appendHistoryGrid(Vlayout layout, List<HistoryRow> rows, int currentLineId) {
-    
-        if (rows == null || rows.isEmpty()) {
-            Label empty = new Label("Belum ada riwayat transaksi untuk item ini.");
-            empty.setStyle("color:#6b7280;font-size:12px;font-style:italic;");
-            layout.appendChild(empty);
-            return;
-        }
-    
-        // Sub-judul
-        Label subTitle = new Label("📊 " + rows.size() + " transaksi terakhir (maks. 3):");
-        subTitle.setStyle("font-size:11px;color:#6b7280;margin-bottom:6px;display:block;");
-        layout.appendChild(subTitle);
-    
-        // Grid
-        Grid grid = new Grid();
-        grid.setStyle(
-            "width:100%;" +
-            "font-size:12px;" +
-            "border-collapse:collapse;"
-        );
-        grid.setSclass("history-popup-grid");
-    
-        // Header kolom
-        Columns cols = new Columns();
-        String[] headers = {"No. Dokumen", "Tanggal", "Business Partner", "Qty", "Harga"};
-        String[] widths  = {"22%",          "16%",     "28%",              "14%", "20%"};
-        for (int i = 0; i < headers.length; i++) {
-            Column col = new Column(headers[i]);
-            col.setWidth(widths[i]);
-            col.setStyle("font-size:11px;color:#374151;background:#f3f4f6;padding:4px 6px;");
-            cols.appendChild(col);
-        }
-        grid.appendChild(cols);
-    
-        // Rows
-        Rows rowsComp = new Rows();
-        for (HistoryRow hr : rows) {
-            Row row = new Row();
-            row.setStyle("border-bottom:1px solid #f3f4f6;");
-    
-            appendCell(row, isEmpty(hr.documentNo) ? "-" : hr.documentNo,
-                    "color:#1d4ed8;font-weight:600;");           // DocNo — biru
-            appendCell(row, isEmpty(hr.date)       ? "-" : hr.date,       "");
-            appendCell(row, isEmpty(hr.bpartner)   ? "-" : hr.bpartner,   "");
-            appendCell(row, isEmpty(hr.qty)        ? "-" : hr.qty,
-                    "text-align:right;");
-            appendCell(row, isEmpty(hr.price)      ? "-" : hr.price,
-                    "text-align:right;font-weight:600;color:#065f46;"); // Harga — hijau
-    
-            rowsComp.appendChild(row);
-        }
-        grid.appendChild(rowsComp);
-        layout.appendChild(grid);
-    }
-    
-    /** Helper: append cell ke Row dengan style opsional. */
-    private void appendCell(Row row, String value, String style) {
-        org.zkoss.zul.Cell cell = new org.zkoss.zul.Cell();
-        cell.setStyle("padding:4px 6px;" + (isEmpty(style) ? "" : style));
-        Label lbl = new Label(value);
-        cell.appendChild(lbl);
-        row.appendChild(cell);
-    }
-    
-    /** Ambil nama kolom pertama yang bukan FK-chain (tidak ada '>') dari candidateDefs. */
-    private String resolveFirstSimpleColumn(String columnDefs) {
-        if (isEmpty(columnDefs)) return null;
-        for (String candidate : splitColumnDefs(columnDefs)) {
-            candidate = candidate.trim();
-            if (!candidate.isEmpty() && !"-".equals(candidate) && !candidate.contains(">"))
-                return candidate;
-        }
-        return null;
-    }
-    
-    /** Tutup dan hapus popup yang sedang aktif. */
-    private void closeActivePopup() {
-        if (activeHistoryPopup != null) {
-            try {
-                if (activeHistoryPopup.getPage() != null)
-                    activeHistoryPopup.getPage().removeComponent(activeHistoryPopup);
-                activeHistoryPopup.detach();
-            } catch (Exception ignored) {}
-            activeHistoryPopup = null;
-        }
-    }
-    
-    /** Data class sederhana untuk satu baris riwayat. */
-    private static class HistoryRow {
-        String documentNo = "-";
-        String date       = "-";
-        String bpartner   = "-";
-        String qty        = "-";
-        String price      = "-";
-    }
         
     private void renderListhead(String tableName, int clientId) {
         if (lstTxLines.getListhead() != null)
@@ -1028,7 +813,7 @@ public class WFTransactionDetailRenderer {
     }
 
     private void clearUI() {
-        closeActivePopup();
+        historyHandler.close();
         List<Listitem> toRemove = new ArrayList<>(lstTxLines.getItems());
         for (Listitem item : toRemove)
             lstTxLines.removeChild(item);
