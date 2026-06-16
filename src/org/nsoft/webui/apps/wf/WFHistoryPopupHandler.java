@@ -291,13 +291,13 @@ public class WFHistoryPopupHandler {
                 HistoryRow row = new HistoryRow();
 
                 if (!isEmpty(qtyCol)) {
-                    Object val = rs.getObject(qtyCol);
-                    row.qty = val != null ? formatAmount(val.toString()) : "-";
+                    BigDecimal qtyValue = rs.getBigDecimal(qtyCol);
+                    row.qty = qtyValue != null ? formatBigDecimal(qtyValue) : "-";
                 }
 
                 if (!isEmpty(priceCol)) {
-                    Object val = rs.getObject(priceCol);
-                    row.price = val != null ? formatAmount(val.toString()) : "-";
+                    BigDecimal priceValue = rs.getBigDecimal(priceCol);
+                    row.price = priceValue != null ? formatBigDecimal(priceValue) : "-";
                 }
 
                 if (!isEmpty(hdrDocNoCol)) {
