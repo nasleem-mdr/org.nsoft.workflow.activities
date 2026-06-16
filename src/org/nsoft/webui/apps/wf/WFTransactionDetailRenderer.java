@@ -322,11 +322,23 @@ public class WFTransactionDetailRenderer {
     String val3 = formatByType(raw3, col3Type,
             "COL3[" + tableName + "] line#" + line.get_ID());
 
-    Listitem item = new Listitem();
-    item.appendChild(new Listcell(val1));
-    item.appendChild(new Listcell(val2));
-    item.appendChild(new Listcell(val3));
-
+        Listitem item = new Listitem();
+        item.appendChild(new Listcell(val1));
+        
+        // Kolom 2
+        Listcell cell2 = new Listcell(val2);
+        if (TYPE_NUMERIC.equals(col2Type)) {
+            cell2.setSclass("text-numeric-right");
+        }
+        item.appendChild(cell2);
+        
+        // Kolom 3
+        Listcell cell3 = new Listcell(val3);
+        if (TYPE_NUMERIC.equals(col3Type)) {
+            cell3.setSclass("text-numeric-right");
+        }
+        item.appendChild(cell3);
+    
     // ★ styling agar terlihat clickable
     item.setStyle("cursor:pointer;");
     item.setTooltiptext("Klik untuk melihat riwayat item ini");
@@ -335,6 +347,7 @@ public class WFTransactionDetailRenderer {
     final PO linePO    = line;
     final String label = val1;
     // renderLines() onClick:
+                
     item.addEventListener(Events.ON_CLICK, event -> {
         historyHandler.open(linePO, label, item,
                         currentTableName, currentClientId, currentHeaderPO);
