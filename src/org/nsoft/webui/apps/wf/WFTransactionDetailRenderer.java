@@ -33,10 +33,6 @@ import org.zkoss.zul.Listcell;
 import org.zkoss.zul.Listhead;
 import org.zkoss.zul.Listheader;
 import org.zkoss.zul.Listitem;
-import org.zkoss.zk.ui.event.Event;
-import org.zkoss.zk.ui.event.EventListener;
-import org.zkoss.zk.ui.event.Events;
-import org.zkoss.zul.Popup;
 import org.zkoss.zul.Grid;
 import org.zkoss.zul.Row;
 import org.zkoss.zul.Rows;
@@ -351,83 +347,7 @@ public class WFTransactionDetailRenderer {
                 appendInfoRow("Error loading line: " + e.getMessage());
             }
     }
-    /**
-     * Menampilkan popup riwayat harga & dokumen untuk line PO yang diklik.
-     * Query: cari dokumen lain yang mengandung produk/item yang sama,
-     *        ambil harga, qty, dan info header dokumennya.
-     *
-     * @param linePO    PO dari baris line yang diklik
-     * @param itemLabel label teks item untuk judul popup
-     * @param anchor    komponen ZK sebagai anchor posisi popup
-     */
-    private void showHistoryPopup(PO linePO, String itemLabel, org.zkoss.zk.ui.Component anchor) {
     
-        // --- Tentukan product ID dari line ---
-        // Coba kolom umum: M_Product_ID, C_Charge_ID, dll.
-        int productId = linePO.get_ValueAsInt("M_Product_ID");
-    
-        // --- Build popup container ---
-        Popup popup = new Popup();
-        popup.setStyle(
-            "background:var(--color-surface,#fff);" +
-            "border:1px solid var(--color-border,#d1d5db);" +
-            "border-radius:8px;" +
-            "box-shadow:0 4px 16px rgba(0,0,0,0.12);" +
-            "padding:0;" +
-            "min-width:380px;" +
-            "max-width:520px;"
-        );
-    
-        Vlayout layout = new Vlayout();
-        layout.setStyle("padding:12px 14px; gap:0;");
-    
-        // --- Judul popup ---
-        Label title = new Label("📋 Riwayat: " + itemLabel);
-        title.setStyle(
-            "font-weight:700;" +
-            "font-size:13px;" +
-            "color:var(--color-text,#111827);" +
-            "display:block;" +
-            "margin-bottom:8px;" +
-            "padding-bottom:6px;" +
-            "border-bottom:1px solid var(--color-border,#e5e7eb);"
-        );
-        layout.appendChild(title);
-    
-        // --- Query data historis ---
-        if (productId > 0) {
-            List<HistoryRow> rows = queryProductHistory(linePO, productId);
-            appendHistoryGrid(layout, rows, linePO.get_ID());
-        } else {
-            // Fallback: item bukan product (misal charge) — tampilkan info terbatas
-            Label noProduct = new Label("ℹ️ Item ini tidak memiliki M_Product_ID.");
-            noProduct.setStyle("color:#6b7280;font-size:12px;");
-            layout.appendChild(noProduct);
-        }
-    
-        // --- Tombol tutup ---
-        Separator sep = new Separator();
-        sep.setStyle("margin:8px 0 4px;");
-        layout.appendChild(sep);
-    
-        org.zkoss.zul.Button btnClose = new org.zkoss.zul.Button("Tutup");
-        btnClose.setStyle(
-            "font-size:11px;padding:2px 10px;" +
-            "border-radius:4px;cursor:pointer;"
-        );
-        btnClose.addEventListener(Events.ON_CLICK, e -> closeActivePopup());
-        layout.appendChild(btnClose);
-    
-        popup.appendChild(layout);
-    
-        // --- Attach ke halaman dan tampilkan ---
-        anchor.getPage().addComponent(popup);   // wajib: attach ke page sebelum open()
-    
-        activeHistoryPopup = popup;
-        popup.open(anchor, "after_start");
-    }
-    
-        
     private void renderListhead(String tableName, int clientId) {
         if (lstTxLines.getListhead() != null)
             lstTxLines.removeChild(lstTxLines.getListhead());
