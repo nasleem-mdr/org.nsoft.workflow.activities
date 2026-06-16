@@ -73,14 +73,13 @@ public class WFHistoryPopupHandler {
     // Active popup — hanya satu yang bisa terbuka sekaligus
     private Popup activePopup = null;
 
-    // =========================================================================
+       // =========================================================================
     // PUBLIC API
     // =========================================================================
-
     /**
      * Buka popup riwayat untuk line item yang diklik.
      * Jika ada popup lain yang sedang terbuka, akan ditutup dulu.
-     *
+     * 
      * @param linePO      PO dari baris line yang diklik
      * @param itemLabel   label teks item untuk judul popup
      * @param anchor      ZK component sebagai anchor posisi popup (biasanya Listitem)
@@ -88,23 +87,23 @@ public class WFHistoryPopupHandler {
      * @param clientId    AD_Client_ID
      * @param headerPO    PO header aktif (untuk exclude dari hasil history)
      */
-    public void open(PO linePO, String itemLabel,
-                     org.zkoss.zk.ui.Component anchor,
-                     String tableName, int clientId, PO headerPO) {
+    public void open(PO linePO, String itemLabel, org.zkoss.zk.ui.Component anchor, String tableName, int clientId, PO headerPO) {
         close();
-
+        
+        // Pastikan anchor dan page tidak null untuk mencegah NullPointerException (NPE)
+        if (anchor == null || anchor.getPage() == null) {
+            log.warning("[WFHistory] Pembukaan popup dibatalkan: Komponen anchor tidak terpasang (detached) ke Page.");
+            return;
+        }
+        
         int productId = linePO.get_ValueAsInt("M_Product_ID");
-
-        Popup popup = buildPopup(linePO, itemLabel, productId,
-                                 tableName, clientId, headerPO);
-
-        // Wajib attach ke page sebelum open()
+        Popup popup = buildPopup(linePO, itemLabel, productId, tableName, clientId, headerPO);
+        
+        // Aman untuk dijalankan karena page sudah divalidasi tidak null
         anchor.getPage().addComponent(popup);
-
         activePopup = popup;
         popup.open(anchor, "after_start");
     }
-
     /**
      * Tutup dan detach popup yang sedang aktif.
      * Aman dipanggil meskipun tidak ada popup yang terbuka.
