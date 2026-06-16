@@ -177,7 +177,16 @@ public class WFHistoryPopupHandler {
         popup.appendChild(layout);
         return popup;
     }
-
+    /**
+     * Validation: is string value from SysConfig filled by secure character.
+     * Valid character (a-z, A-Z), numbe (0-9), and underscore (_).
+    */
+    private boolean isValidSQLIdentifier(String identifier) {
+        if (isEmpty(identifier)) 
+            return false;
+        // Regex: ^[a-zA-Z0-9_]+$
+        return identifier.matches("^[a-zA-Z0-9_]+$");
+    }
     // =========================================================================
     // PRIVATE — QUERY
     // =========================================================================
@@ -190,54 +199,77 @@ public class WFHistoryPopupHandler {
      *
      * Exclude dokumen yang sedang diapprove (headerPO) dari hasil.
      */
-    private List<HistoryRow> queryHistory(int productId,
+        private List<HistoryRow> queryHistory(int productId,
                                           String tableName,
                                           int clientId,
                                           PO headerPO) {
         List<HistoryRow> result = new ArrayList<>();
-
+    
+        // 1. Validasi awal untuk parameter tableName dari context
+        if (!isValidSQLIdentifier(tableName)) {
+            log.warning("[WFHistory] Security Alert: Nama tabel utama tidak valid: " + tableName);
+            return result;
+        }
+    
         String lineTable = getSysConfig(tableName, LINE_TABLE, clientId, null);
         String linkCol   = getSysConfig(tableName, LINK_COL,   clientId, null);
-
+    
         if (isEmpty(lineTable) || "-".equals(lineTable)
                 || isEmpty(linkCol) || "-".equals(linkCol)) {
             log.info("[WFHistory] Skipping — LINE_TABLE/LINK_COL not configured for: " + tableName);
             return result;
         }
-
-        String qtyCol      = resolveFirstSimpleColumn(
-                                 getSysConfig(tableName, COL2, clientId, DEFAULT_COL2));
-        String priceCol    = resolveFirstSimpleColumn(
-                                 getSysConfig(tableName, COL3, clientId, DEFAULT_COL3));
-        String hdrDocNoCol = resolveFirstSimpleColumn(
-                                 getSysConfig(tableName, HDR_COL1, clientId, DEFAULT_HDR_COL1));
-        String hdrDateCol  = resolveFirstSimpleColumn(
-                                 getSysConfig(tableName, HDR_COL3, clientId, DEFAULT_HDR_COL3));
-
+    
+        // 2. Validasi ketat untuk lineTable dan linkCol dari SysConfig
+        if (!isValidSQLIdentifier(lineTable) || !isValidSQLIdentifier(linkCol)) {
+            log.warning("[WFHistory] Security Alert: LINE_TABLE atau LINK_COL mengandung karakter ilegal!");
+            return result;
+        }
+    
+        String qtyCol      = resolveFirstSimpleColumn(getSysConfig(tableName, COL2, clientId, DEFAULT_COL2));
+        String priceCol    = resolveFirstSimpleColumn(getSysConfig(tableName, COL3, clientId, DEFAULT_COL3));
+        String hdrDocNoCol = resolveFirstSimpleColumn(getSysConfig(tableName, HDR_COL1, clientId, DEFAULT_HDR_COL1));
+        String hdrDateCol  = resolveFirstSimpleColumn(getSysConfig(tableName, HDR_COL3, clientId, DEFAULT_HDR_COL3));
+    
+        // 3. Validasi ketat untuk kolom-kolom dinamis sebelum ditempel ke SQL
+        if (!isEmpty(qtyCol) && !isValidSQLIdentifier(qtyCol)) {
+            log.warning("[WFHistory] Security Alert: qtyCol tidak valid: " + qtyCol);
+            return result;
+        }
+        if (!isEmpty(priceCol) && !isValidSQLIdentifier(priceCol)) {
+            log.warning("[WFHistory] Security Alert: priceCol tidak valid: " + priceCol);
+            return result;
+        }
+        if (!isEmpty(hdrDocNoCol) && !isValidSQLIdentifier(hdrDocNoCol)) {
+            log.warning("[WFHistory] Security Alert: hdrDocNoCol tidak valid: " + hdrDocNoCol);
+            return result;
+        }
+        if (!isEmpty(hdrDateCol) && !isValidSQLIdentifier(hdrDateCol)) {
+            log.warning("[WFHistory] Security Alert: hdrDateCol tidak valid: " + hdrDateCol);
+            return result;
+        }
+    
         int currentHeaderId = headerPO != null ? headerPO.get_ID() : 0;
-
-        // Build SELECT list
+    
+        // --- SIFAT SQL SEKARANG AMAN KARENA SEMUA IDENTIFIER SUDAH DI-WHITELIST ---
         StringBuilder sql = new StringBuilder("SELECT ");
         if (!isEmpty(qtyCol))      sql.append("l.").append(qtyCol).append(", ");
         if (!isEmpty(priceCol))    sql.append("l.").append(priceCol).append(", ");
         if (!isEmpty(hdrDocNoCol)) sql.append("h.").append(hdrDocNoCol).append(", ");
         if (!isEmpty(hdrDateCol))  sql.append("h.").append(hdrDateCol).append(", ");
         sql.append("bp.Name AS BPartnerName ");
-
-        // FROM + JOIN
+    
         sql.append("FROM ").append(lineTable).append(" l ");
         sql.append("LEFT JOIN ").append(tableName).append(" h ");
         sql.append(  "ON h.").append(tableName).append("_ID = l.").append(linkCol).append(" ");
         sql.append("LEFT JOIN C_BPartner bp ON bp.C_BPartner_ID = h.C_BPartner_ID ");
-
-        // WHERE
+    
         sql.append("WHERE l.M_Product_ID = ? ");
         if (currentHeaderId > 0)
             sql.append("AND l.").append(linkCol).append(" != ? ");
         sql.append("AND l.AD_Client_ID = ? ");
         sql.append("AND l.IsActive = 'Y' ");
-
-        // ORDER + LIMIT
+    
         sql.append("ORDER BY h.")
            .append(!isEmpty(hdrDateCol) ? hdrDateCol : "Created")
            .append(" DESC ");
