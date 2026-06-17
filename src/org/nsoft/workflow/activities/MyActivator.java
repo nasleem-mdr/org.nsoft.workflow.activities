@@ -40,13 +40,6 @@ public class MyActivator extends Incremental2PackActivator {
 	                + " | bundle=" + context.getBundle().getSymbolicName()
 	                + " | version=" + context.getBundle().getVersion());
 	    super.start(context);
-//	    Extensions.getMappedFormFactory().scan(context, "org.adempiere.webui.apps.wf");
-//	    CLogger.getCLogger(MyActivator.class)
-//	        .warning("=== NSoft WFActivity scan selesai ===");
 	}
 
 }
-
-
-
-

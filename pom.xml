@@ -9,7 +9,7 @@
 	</parent>
 	<groupId>org.nsoft.workflow</groupId>
 	<artifactId>org.nsoft.workflow.activities</artifactId>
-	<version>1.3.2-SNAPSHOT</version>
+	<version>1.4.1-SNAPSHOT</version>
 	<packaging>eclipse-plugin</packaging>
 	
 </project>

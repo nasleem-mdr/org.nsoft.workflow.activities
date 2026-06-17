@@ -87,37 +87,33 @@ public class WFHistoryPopupHandler {
      * @param clientId    AD_Client_ID
      * @param headerPO    PO header aktif (untuk exclude dari hasil history)
      */
-    public void open(PO linePO, String itemLabel, org.zkoss.zk.ui.Component anchor, String tableName, int clientId, PO headerPO) {
-        close();
-        
-        // Pastikan anchor dan page tidak null untuk mencegah NullPointerException (NPE)
-        if (anchor == null || anchor.getPage() == null) {
-            log.warning("[WFHistory] Pembukaan popup dibatalkan: Komponen anchor tidak terpasang (detached) ke Page.");
-            return;
-        }
-        
-        int productId = linePO.get_ValueAsInt("M_Product_ID");
-        Popup popup = buildPopup(linePO, itemLabel, productId, tableName, clientId, headerPO);
-        
-        // Aman untuk dijalankan karena page sudah divalidasi tidak null
-        anchor.getPage().addComponent(popup);
-        activePopup = popup;
-        popup.open(anchor, "after_start");
-    }
-    /**
-     * Tutup dan detach popup yang sedang aktif.
-     * Aman dipanggil meskipun tidak ada popup yang terbuka.
-     */
-    public void close() {
-        if (activePopup != null) {
-            try {
-                if (activePopup.getPage() != null)
-                    activePopup.getPage().removeComponent(activePopup);
-                activePopup.detach();
-            } catch (Exception ignored) {}
-            activePopup = null;
-        }
-    }
+    public void open(PO linePO, String itemLabel, org.zkoss.zk.ui.Component anchor, 
+		            String tableName, int clientId, PO headerPO) {
+		close();
+		
+		if (anchor == null || anchor.getPage() == null) {
+		   log.warning("[WFHistory] Anchor tidak terpasang ke Page.");
+		   return;
+		}
+		
+		int productId = linePO.get_ValueAsInt("M_Product_ID");
+		Popup popup = buildPopup(linePO, itemLabel, productId, tableName, clientId, headerPO);
+		
+		// ✅ Append ke root component (Desktop root), bukan ke Page
+		anchor.getRoot().appendChild(popup);
+		activePopup = popup;
+		popup.open(anchor, "after_start");
+	}
+
+	public void close() {
+	if (activePopup != null) {
+	   try {
+	       // ✅ Cukup detach saja, tidak perlu removeComponent dari Page
+	       activePopup.detach();
+	   } catch (Exception ignored) {}
+	   activePopup = null;
+	}
+	}
 
     // =========================================================================
     // PRIVATE — POPUP BUILD
@@ -441,7 +437,23 @@ public class WFHistoryPopupHandler {
 
         return result;
     }
-
+    /**
+     * Format nilai BigDecimal ke dalam format angka lokal aplikasi (dua angka di belakang koma).
+     * Menggunakan objek BigDecimal langsung sehingga bebas dari NumberFormatException akibat parsing string.
+     */
+    private String formatBigDecimal(BigDecimal value) {
+        if (value == null) return "-";
+        try {
+            NumberFormat nf = NumberFormat.getNumberInstance(Env.getLanguage(Env.getCtx()).getLocale());
+            nf.setMinimumFractionDigits(2);
+            nf.setMaximumFractionDigits(2);
+            return nf.format(value);
+        } catch (Exception e) {
+            // Fallback jika terjadi kegagalan format yang tidak terduga
+            return value.toString();
+        }
+    }
+    
     private String formatAmount(String rawValue) {
         if (isEmpty(rawValue) || "-".equals(rawValue)) return "-";
         try {

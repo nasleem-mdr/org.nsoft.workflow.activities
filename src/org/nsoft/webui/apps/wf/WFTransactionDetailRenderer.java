@@ -43,6 +43,7 @@ import org.zkoss.zul.Separator;
 import org.compiere.util.DB;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import org.zkoss.zk.ui.event.Events;
 
 
 public class WFTransactionDetailRenderer {
@@ -126,7 +127,9 @@ public class WFTransactionDetailRenderer {
     private final Label    lHdrCol2Title;
     private final Label    lHdrCol3Title;
     private final Label    lHdrCol4Title;
-      
+    private String currentTableName = null;
+    private int    currentClientId  = 0;
+    private PO     currentHeaderPO  = null;  
     // WFHistoryPopupHandler
     private final WFHistoryPopupHandler historyHandler = new WFHistoryPopupHandler();
     // CONSTRUCTOR — minimum
@@ -178,8 +181,7 @@ public class WFTransactionDetailRenderer {
      */
    public void render(MWFActivity activity) {
         clearUI();
-        closeActivePopup(); // tutup popup lama kalau ada
-    
+            
         if (activity == null || activity.getRecord_ID() <= 0) {
             grpTxDetails.setVisible(false);
             return;

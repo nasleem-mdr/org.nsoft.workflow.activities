@@ -27,9 +27,11 @@ import org.adempiere.webui.component.Columns;
 import org.adempiere.webui.component.Grid;
 import org.adempiere.webui.component.Label;
 import org.adempiere.webui.component.ListHeader;
-import org.adempiere.webui.component.ListItem;
+//import org.adempiere.webui.component.ListItem;
+import org.zkoss.zul.Listitem;
+import org.zkoss.zul.Listbox; 
 import org.adempiere.webui.component.ListModelTable;
-import org.adempiere.webui.component.Listbox;
+//import org.adempiere.webui.component.Listbox;
 import org.adempiere.webui.component.Row;
 import org.adempiere.webui.component.Rows;
 import org.adempiere.webui.component.Textbox;
@@ -938,25 +940,29 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 				m_column = node.getColumn();
 			if (m_column != null && m_column.get_ID() != 0)
 			{
-				fAnswerList.removeAllItems();
+				fAnswerList.getItems().clear();
 				int dt = m_column.getAD_Reference_ID();
 				if (dt == DisplayType.YesNo)
 				{
-					ValueNamePair[] values = MRefList.getList(Env.getCtx(), 319, false);		
-					for(int i = 0; i < values.length; i++)
-					{
-						fAnswerList.appendItem(values[i].getName(), values[i].getValue());
-					}
-					fAnswerList.setVisible(true);
+				    ValueNamePair[] values = MRefList.getList(Env.getCtx(), 319, false);
+				    for(int i = 0; i < values.length; i++)
+				    {
+				        Listitem item = new Listitem(values[i].getName());
+				        item.setValue(values[i].getValue());
+				        fAnswerList.appendChild(item);
+				    }
+				    fAnswerList.setVisible(true);
 				}
 				else if (DisplayType.isList(dt))
 				{
-					ValueNamePair[] values = MRefList.getList(Env.getCtx(), m_column.getAD_Reference_Value_ID(), false);
-					for(int i = 0; i < values.length; i++)
-					{
-						fAnswerList.appendItem(values[i].getName(), values[i].getValue());
-					}
-					fAnswerList.setVisible(true);
+				    ValueNamePair[] values = MRefList.getList(Env.getCtx(), m_column.getAD_Reference_Value_ID(), false);
+				    for(int i = 0; i < values.length; i++)
+				    {
+				        Listitem item = new Listitem(values[i].getName());
+				        item.setValue(values[i].getValue());
+				        fAnswerList.appendChild(item);
+				    }
+				    fAnswerList.setVisible(true);
 				}
 				else	
 				{
@@ -1070,8 +1076,11 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 				String value = fAnswerText.getText();
 				if (dt == DisplayType.YesNo || DisplayType.isList(dt))
 				{
-					ListItem li = fAnswerList.getSelectedItem();
-					if(li != null) value = li.getValue().toString();
+					//ListItem li = fAnswerList.getSelectedItem();
+					//if(li != null) value = li.getValue().toString();
+					Listitem li = fAnswerList.getSelectedItem();
+					if (li != null) value = (String) li.getValue();
+					
 				}
 				if (value == null || value.length() == 0)
 				{
