@@ -2,6 +2,7 @@ Manifest-Version: 1.0
 Bundle-ManifestVersion: 2
 Bundle-Name: org.nsoft.workflow.activities
 Bundle-SymbolicName: org.nsoft.workflow.activities;singleton:=true
+Bundle-Vendor: NSoft
 Bundle-Version: 1.4.1.qualifier
 Bundle-RequiredExecutionEnvironment: JavaSE-17
 Bundle-ActivationPolicy: lazy
@@ -19,4 +20,5 @@ Import-Package: org.adempiere.webui.apps,
  org.osgi.framework,
  org.osgi.service.component.annotations
 Service-Component: OSGI-INF/*.xml
-Bundle-Activator: org.nsoft.workflow.activities.MyActivator
+Bundle-Activator: org.adempiere.plugin.utils.Incremental2PackActivator
+

@@ -343,7 +343,7 @@ public class WFTransactionDetailRenderer {
     
     // ★ styling agar terlihat clickable
     item.setStyle("cursor:pointer;");
-    item.setTooltiptext("Klik untuk melihat riwayat item ini");
+    item.setTooltiptext("Click to view item transaction histories");
 
     // ★ capture final reference untuk lambda
     final PO linePO    = line;

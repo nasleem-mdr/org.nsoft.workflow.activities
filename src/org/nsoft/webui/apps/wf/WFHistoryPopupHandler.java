@@ -47,7 +47,7 @@ import org.zkoss.zul.Row;
 import org.zkoss.zul.Rows;
 import org.zkoss.zul.Separator;
 import org.zkoss.zul.Vlayout;
-
+import org.compiere.util.Msg;
 
 public class WFHistoryPopupHandler {
 
@@ -61,9 +61,19 @@ public class WFHistoryPopupHandler {
     private static final String COL3       = "_COL3";
     private static final String HDR_COL1   = "_HDR_COL1";
     private static final String HDR_COL3   = "_HDR_COL3";
+    
+    private static final String MSG_TITLE         = "WFHistory_Title";
+    private static final String MSG_NO_PRODUCT    = "WFHistory_NoProduct";
+    private static final String MSG_NO_DATA       = "WFHistory_NoData";
+    private static final String MSG_SUBTITLE      = "WFHistory_SubTitle";
+    private static final String MSG_COL_DOCNO     = "WFHistory_ColDocNo";
+    private static final String MSG_COL_DATE      = "WFHistory_ColDate";
+    private static final String MSG_COL_BPARTNER  = "WFHistory_ColBPartner";
+    private static final String MSG_COL_QTY       = "WFHistory_ColQty";
+    private static final String MSG_COL_AMOUNT    = "WFHistory_ColAmount";
 
     // Default fallbacks — mirror dari WFTransactionDetailRenderer
-    private static final String DEFAULT_COL2     = "QtyOrdered,QtyInvoiced,MovementQty,QtyEntered,Qty";
+    private static final String DEFAULT_COL2     = "QtyEntered,QtyOrdered,QtyInvoiced,MovementQty,Qty";
     private static final String DEFAULT_COL3     = "LineNetAmt,PriceActual,-";
     private static final String DEFAULT_HDR_COL1 = "DocumentNo,Value,Name";
     private static final String DEFAULT_HDR_COL3 = "DateOrdered,DateInvoiced,MovementDate,DateRequired,DateDoc,Created";
@@ -77,29 +87,29 @@ public class WFHistoryPopupHandler {
     // PUBLIC API
     // =========================================================================
     /**
-     * Buka popup riwayat untuk line item yang diklik.
-     * Jika ada popup lain yang sedang terbuka, akan ditutup dulu.
+     * Open Popup "transaction history of clik item".
+     * If othe Popup is open, close before.
      * 
-     * @param linePO      PO dari baris line yang diklik
-     * @param itemLabel   label teks item untuk judul popup
-     * @param anchor      ZK component sebagai anchor posisi popup (biasanya Listitem)
-     * @param tableName   nama header table (dari SysConfig context)
+     * @param linePO      PO from clicked line item
+     * @param itemLabel   Tex label item for header popup
+     * @param anchor      ZK component as position popup anchor (ussually Listitem)
+     * @param tableName   Header table name (from SysConfig context)
      * @param clientId    AD_Client_ID
-     * @param headerPO    PO header aktif (untuk exclude dari hasil history)
+     * @param headerPO    PO header is active (to exclude from fetch history)
      */
     public void open(PO linePO, String itemLabel, org.zkoss.zk.ui.Component anchor, 
 		            String tableName, int clientId, PO headerPO) {
 		close();
 		
 		if (anchor == null || anchor.getPage() == null) {
-		   log.warning("[WFHistory] Anchor tidak terpasang ke Page.");
+		   log.warning("[WFHistory] Anchor is not in Page.");
 		   return;
 		}
 		
 		int productId = linePO.get_ValueAsInt("M_Product_ID");
 		Popup popup = buildPopup(linePO, itemLabel, productId, tableName, clientId, headerPO);
 		
-		// ✅ Append ke root component (Desktop root), bukan ke Page
+		//  Append to component root (Desktop root), not to Page
 		anchor.getRoot().appendChild(popup);
 		activePopup = popup;
 		popup.open(anchor, "after_start");
@@ -108,7 +118,7 @@ public class WFHistoryPopupHandler {
 	public void close() {
 	if (activePopup != null) {
 	   try {
-	       // ✅ Cukup detach saja, tidak perlu removeComponent dari Page
+	       // Just detach it, no need to removeComponent from Page
 	       activePopup.detach();
 	   } catch (Exception ignored) {}
 	   activePopup = null;
@@ -136,8 +146,8 @@ public class WFHistoryPopupHandler {
         Vlayout layout = new Vlayout();
         layout.setStyle("padding:12px 14px;gap:0;");
 
-        // --- Judul ---
-        Label title = new Label("📋 Riwayat: " + itemLabel);
+        // --- Header ---
+        Label title = new Label("📋 " + Msg.getMsg(Env.getCtx(), MSG_TITLE) + ": " + itemLabel);
         title.setStyle(
             "font-weight:700;" +
             "font-size:13px;" +
@@ -154,17 +164,17 @@ public class WFHistoryPopupHandler {
             List<HistoryRow> rows = queryHistory(productId, tableName, clientId, headerPO);
             appendHistoryGrid(layout, rows);
         } else {
-            Label noProduct = new Label("ℹ️ Item ini tidak memiliki M_Product_ID.");
+        	Label noProduct = new Label("ℹ️ " + Msg.getMsg(Env.getCtx(), MSG_NO_PRODUCT));
             noProduct.setStyle("color:#6b7280;font-size:12px;");
             layout.appendChild(noProduct);
         }
 
-        // --- Tombol tutup ---
+        // --- Close button ---
         Separator sep = new Separator();
         sep.setStyle("margin:8px 0 4px;");
         layout.appendChild(sep);
 
-        Button btnClose = new Button("Tutup");
+        Button btnClose = new Button(Msg.getMsg(Env.getCtx(), "Close"));
         btnClose.setStyle("font-size:11px;padding:2px 10px;border-radius:4px;cursor:pointer;");
         btnClose.addEventListener(Events.ON_CLICK, e -> close());
         layout.appendChild(btnClose);
@@ -329,13 +339,14 @@ public class WFHistoryPopupHandler {
     private void appendHistoryGrid(Vlayout layout, List<HistoryRow> rows) {
 
         if (rows == null || rows.isEmpty()) {
-            Label empty = new Label("Belum ada riwayat transaksi untuk item ini.");
+            Label empty = new Label(Msg.getMsg(Env.getCtx(), MSG_NO_DATA));
             empty.setStyle("color:#6b7280;font-size:12px;font-style:italic;");
             layout.appendChild(empty);
             return;
         }
 
-        Label subTitle = new Label("📊 " + rows.size() + " transaksi terakhir (maks. " + HISTORY_LIMIT + "):");
+        Label subTitle = new Label("📊 " + Msg.getMsg(Env.getCtx(), MSG_SUBTITLE, 
+                new Object[]{rows.size(), HISTORY_LIMIT}));
         subTitle.setStyle("font-size:11px;color:#6b7280;margin-bottom:6px;display:block;");
         layout.appendChild(subTitle);
 
@@ -345,7 +356,13 @@ public class WFHistoryPopupHandler {
 
         // Header kolom
         Columns cols = new Columns();
-        String[] headers = {"No. Dokumen", "Tanggal", "Business Partner", "Qty", "Harga"};
+        String[] headers = {
+        	    Msg.getMsg(Env.getCtx(), MSG_COL_DOCNO),
+        	    Msg.getMsg(Env.getCtx(), MSG_COL_DATE),
+        	    Msg.getMsg(Env.getCtx(), MSG_COL_BPARTNER),
+        	    Msg.getMsg(Env.getCtx(), MSG_COL_QTY),
+        	    Msg.getMsg(Env.getCtx(), MSG_COL_AMOUNT)
+        	};
         String[] widths  = {"22%", "16%", "28%", "14%", "20%"};
         for (int i = 0; i < headers.length; i++) {
             Column col = new Column(headers[i]);

@@ -311,64 +311,78 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    grpTxDetails.setVisible(true); 
 	    grpTxDetails.setSclass("wf-groupbox-clean"); 
 	
-	    Vlayout headerInfoLayout = new Vlayout();
-	    headerInfoLayout.setHflex("1");
-	    headerInfoLayout.setSpacing("4px");
+	    		
+		Vlayout headerInfoLayout = new Vlayout();
+		headerInfoLayout.setHflex("1");
+		headerInfoLayout.setSpacing("4px");
 		headerInfoLayout.setSclass("wf-header-info");
-		
-		// Baris 1: No. Dokumen
-		//Hlayout row1 = new Hlayout();
-		//row1.setHflex("1");
-		//row1.setSpacing("0px");
-		//lHdrCol1Title.setSclass("wf-field-label wf-label-min");
-		//lHdrCol1.setSclass("wf-field-value");
-		//Label sep1 = new Label(":");
-		//sep1.setSclass("wf-label-sep");
-		//row1.appendChild(lHdrCol1Title);
-		//row1.appendChild(sep1);
-		//row1.appendChild(lHdrCol1);
-		//headerInfoLayout.appendChild(row1);
 
-		// Baris 2: Business Partner
-		Hlayout row2 = new Hlayout();
-		row2.setHflex("1");
-		row2.setSpacing("0px");
-		lHdrCol2Title.setSclass("wf-field-label wf-label-min");
-		lHdrCol2.setSclass("wf-field-value");
-		Label sep2 = new Label(":");
-		sep2.setSclass("wf-label-sep");
-		row2.appendChild(lHdrCol2Title);
-		row2.appendChild(sep2);
-		row2.appendChild(lHdrCol2);
-		headerInfoLayout.appendChild(row2);
+		// BARIS ATAS (Kolom 1 dan Kolom 3)
+		Hlayout topRow = new Hlayout();
+		topRow.setHflex("1");
+		topRow.setSpacing("10px"); // Jarak antara kolom kiri dan kanan
 
-		// Baris 3: Date
-		Hlayout row3 = new Hlayout();
-		row3.setHflex("1");
-		row3.setSpacing("0px");
-		lHdrCol3Title.setSclass("wf-field-label wf-label-min");
-		lHdrCol3.setSclass("wf-field-value");
-		Label sep3 = new Label(":");
-		sep3.setSclass("wf-label-sep");
-		row3.appendChild(lHdrCol3Title);
-		row3.appendChild(sep3);
-		row3.appendChild(lHdrCol3);
-		headerInfoLayout.appendChild(row3);
+		    // Kolom kiri (No. Dokumen)
+		    Hlayout col1 = new Hlayout();
+		    col1.setHflex("1");
+		    col1.setSpacing("0px");
+		    lHdrCol1Title.setSclass("wf-field-label wf-label-min");
+		    lHdrCol1.setSclass("wf-field-value");
+		    Label sep1 = new Label(":");
+		    sep1.setSclass("wf-label-sep");
+		    col1.appendChild(lHdrCol1Title);
+		    col1.appendChild(sep1);
+		    col1.appendChild(lHdrCol1);
+		    topRow.appendChild(col1);
 
-		// Baris 4: Total
-		Hlayout row4 = new Hlayout();
-		row4.setHflex("1");
-		row4.setSpacing("0px");
-		lHdrCol4Title.setSclass("wf-field-label wf-label-min");
-		lHdrCol4.setSclass("wf-field-value wf-value-numeric");
-		Label sep4 = new Label(":");
-		sep4.setSclass("wf-label-sep");
-		row4.appendChild(lHdrCol4Title);
-		row4.appendChild(sep4);
-		row4.appendChild(lHdrCol4);
-		headerInfoLayout.appendChild(row4);
-		
+		    // Kolom kanan (Date)
+		    Hlayout col3 = new Hlayout();
+		    col3.setHflex("1");
+		    col3.setSpacing("0px");
+		    lHdrCol3Title.setSclass("wf-field-label wf-label-min");
+		    lHdrCol3.setSclass("wf-field-value");
+		    Label sep3 = new Label(":");
+		    sep3.setSclass("wf-label-sep");
+		    col3.appendChild(lHdrCol3Title);
+		    col3.appendChild(sep3);
+		    col3.appendChild(lHdrCol3);
+		    topRow.appendChild(col3);
+
+		headerInfoLayout.appendChild(topRow);
+		// BARIS BAWAH (Kolom 2 network dan Kolom 4)
+		Hlayout bottomRow = new Hlayout();
+		bottomRow.setHflex("1");
+		bottomRow.setSpacing("10px"); // Jarak antara kolom kiri dan kanan
+
+		    // Kolom kiri (Business Partner)
+		    Hlayout col2 = new Hlayout();
+		    col2.setHflex("1");
+		    col2.setSpacing("0px");
+		    lHdrCol2Title.setSclass("wf-field-label wf-label-min");
+		    lHdrCol2.setSclass("wf-field-value");
+		    Label sep2 = new Label(":");
+		    sep2.setSclass("wf-label-sep");
+		    col2.appendChild(lHdrCol2Title);
+		    col2.appendChild(sep2);
+		    col2.appendChild(lHdrCol2);
+		    bottomRow.appendChild(col2);
+
+		    // Kolom kanan (Total)
+		    Hlayout col4 = new Hlayout();
+		    col4.setHflex("1");
+		    col4.setSpacing("0px");
+		    lHdrCol4Title.setSclass("wf-field-label wf-label-min");
+		    lHdrCol4.setSclass("wf-field-value wf-value-numeric");
+		    Label sep4 = new Label(":");
+		    sep4.setSclass("wf-label-sep");
+		    col4.appendChild(lHdrCol4Title);
+		    col4.appendChild(sep4);
+		    col4.appendChild(lHdrCol4);
+		    bottomRow.appendChild(col4);
+
+		headerInfoLayout.appendChild(bottomRow);
 	    grpTxDetails.appendChild(headerInfoLayout);
+	    
 		
 	    lstTxLines.setHflex("1");
 	    lstTxLines.setSpan(true);
@@ -396,7 +410,7 @@ public class WWFActivity extends ADForm implements EventListener<Event>
 	    Vlayout helpTabLayout = new Vlayout();
 	    helpTabLayout.setHflex("1");
 	    helpTabLayout.setSpacing("5px");
-	    helpTabLayout.appendChild(fHelp);           // ← pindahkan fHelp ke sini
+	    helpTabLayout.appendChild(fHelp);           
 	    fHelp.setMultiline(true);
 	    fHelp.setRows(5);
 	    fHelp.setReadonly(true);
